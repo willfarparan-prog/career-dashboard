@@ -1,0 +1,122 @@
+@import "tailwindcss";
+@import "@neondatabase/auth-ui/tailwind";
+
+/*
+ * One palette for the app and the Neon Auth screens. The auth UI reads the
+ * shadcn-style variables below (--background, --primary, …), so defining them
+ * here themes both. Light and dark follow the system setting.
+ */
+:root {
+  --background: oklch(0.985 0.002 250);
+  --foreground: oklch(0.2 0.02 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 260);
+  --primary: oklch(0.45 0.16 264);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.955 0.01 260);
+  --secondary-foreground: oklch(0.25 0.02 260);
+  --muted: oklch(0.96 0.006 260);
+  --muted-foreground: oklch(0.48 0.02 260);
+  --accent: oklch(0.94 0.03 264);
+  --accent-foreground: oklch(0.3 0.1 264);
+  --destructive: oklch(0.55 0.2 27);
+  --destructive-foreground: oklch(0.55 0.2 27);
+  --border: oklch(0.91 0.008 260);
+  --input: oklch(0.88 0.01 260);
+  --ring: oklch(0.6 0.12 264);
+  --ok: oklch(0.52 0.13 155);
+  --ok-soft: oklch(0.95 0.04 155);
+  --warn: oklch(0.55 0.13 70);
+  --warn-soft: oklch(0.96 0.05 85);
+  --bad: oklch(0.55 0.2 27);
+  --bad-soft: oklch(0.96 0.03 27);
+  --info-soft: oklch(0.95 0.03 250);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.17 0.01 260);
+    --foreground: oklch(0.95 0.005 260);
+    --card: oklch(0.21 0.012 260);
+    --card-foreground: oklch(0.95 0.005 260);
+    --popover: oklch(0.21 0.012 260);
+    --popover-foreground: oklch(0.95 0.005 260);
+    --primary: oklch(0.72 0.13 264);
+    --primary-foreground: oklch(0.17 0.02 264);
+    --secondary: oklch(0.26 0.012 260);
+    --secondary-foreground: oklch(0.93 0.005 260);
+    --muted: oklch(0.25 0.012 260);
+    --muted-foreground: oklch(0.72 0.015 260);
+    --accent: oklch(0.3 0.05 264);
+    --accent-foreground: oklch(0.9 0.05 264);
+    --destructive: oklch(0.7 0.17 25);
+    --destructive-foreground: oklch(0.7 0.17 25);
+    --border: oklch(1 0 0 / 11%);
+    --input: oklch(1 0 0 / 16%);
+    --ring: oklch(0.6 0.12 264);
+    --ok: oklch(0.75 0.13 155);
+    --ok-soft: oklch(0.3 0.05 155);
+    --warn: oklch(0.8 0.12 80);
+    --warn-soft: oklch(0.32 0.05 80);
+    --bad: oklch(0.72 0.16 25);
+    --bad-soft: oklch(0.32 0.06 25);
+    --info-soft: oklch(0.3 0.04 250);
+  }
+}
+
+@theme inline {
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-info-soft: var(--info-soft);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Form controls share one look. */
+.field {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+}
+.field > span {
+  font-weight: 500;
+}
+.field small {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+.input {
+  width: 100%;
+  border: 1px solid var(--input);
+  background: var(--card);
+  color: var(--foreground);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.input:focus {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+textarea.input {
+  min-height: 5rem;
+  resize: vertical;
+}
