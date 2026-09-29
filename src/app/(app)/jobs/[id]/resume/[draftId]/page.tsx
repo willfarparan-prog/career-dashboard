@@ -52,6 +52,7 @@ export default async function DraftEditorPage({ params }: { params: Params }) {
   const draftLevel = open.filter((f) => !f.bulletId);
   const counts = { error: open.filter((f) => f.severity === "error").length, warning: open.filter((f) => f.severity === "warning").length, info: open.filter((f) => f.severity === "info").length };
   const proposed = bullets.filter((b) => b.state === "proposed").length;
+  const groups = groupFindings(open);
 
   const roles = draft.roleOrder.map((rid) => library.roles.find((r) => r.id === rid)).filter((r): r is NonNullable<typeof r> => Boolean(r));
   const placed = new Set(roles.map((r) => r.id));
@@ -231,30 +232,40 @@ export default async function DraftEditorPage({ params }: { params: Params }) {
               ) : null}
             </div>
             <ul className="mt-4 space-y-3">
-              {open.length ? (
-                open
-                  .slice()
-                  .sort((a, b) => ["error", "warning", "info"].indexOf(a.severity) - ["error", "warning", "info"].indexOf(b.severity))
-                  .map((f) => (
-                    <li key={f.id} className="text-sm">
-                      <div className="flex items-start gap-2">
-                        <Badge tone={SEVERITY_TONE[f.severity]}>{f.severity}</Badge>
-                        <div className="min-w-0">
-                          <p>{f.message}</p>
-                          {f.suggestion ? <p className="text-xs text-muted-foreground">{f.suggestion}</p> : null}
-                          <div className="mt-1 flex flex-wrap items-center gap-3 text-xs">
-                            {f.bulletId ? <a href={`#b-${f.bulletId}`} className="text-primary underline">Show bullet</a> : null}
-                            <span className="text-muted-foreground">{f.source === "claude" ? "Claude" : "Rule"}</span>
-                            <ActionForm action={findingAction}>
-                              <input type="hidden" name="findingId" value={f.id} />
-                              <input type="hidden" name="resolved" value="true" />
-                              <button type="submit" className="text-muted-foreground underline hover:text-foreground">Dismiss</button>
-                            </ActionForm>
-                          </div>
+              {groups.length ? (
+                groups.map((group) => (
+                  <li key={group.key} className="text-sm">
+                    <div className="flex items-start gap-2">
+                      <Badge tone={SEVERITY_TONE[group.severity]}>{group.severity}</Badge>
+                      <div className="min-w-0">
+                        <p>
+                          {group.message}
+                          {group.items.length > 1 ? <span className="text-muted-foreground"> ({group.items.length}×)</span> : null}
+                        </p>
+                        {group.suggestion ? <p className="text-xs text-muted-foreground">{group.suggestion}</p> : null}
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                          {group.items
+                            .filter((f) => f.bulletId)
+                            .map((f, index) => (
+                              <a key={f.id} href={`#b-${f.bulletId}`} className="text-primary underline">
+                                {group.items.length > 1 ? `Bullet ${index + 1}` : "Show bullet"}
+                              </a>
+                            ))}
+                          <span className="text-muted-foreground">{group.source === "claude" ? "Claude" : "Rule"}</span>
+                          <ActionForm action={findingAction}>
+                            {group.items.map((f) => (
+                              <input key={f.id} type="hidden" name="findingId" value={f.id} />
+                            ))}
+                            <input type="hidden" name="resolved" value="true" />
+                            <button type="submit" className="text-muted-foreground underline hover:text-foreground">
+                              {group.items.length > 1 ? "Dismiss all" : "Dismiss"}
+                            </button>
+                          </ActionForm>
                         </div>
                       </div>
-                    </li>
-                  ))
+                    </div>
+                  </li>
+                ))
               ) : (
                 <li className="text-sm text-ok">Nothing open. Still read it once as the hiring manager would.</li>
               )}
@@ -284,6 +295,21 @@ export default async function DraftEditorPage({ params }: { params: Params }) {
       </div>
     </div>
   );
+}
+
+type FindingGroup = { key: string; severity: DraftFinding["severity"]; message: string; suggestion: string; source: DraftFinding["source"]; items: DraftFinding[] };
+
+/** The same finding on several bullets reads once, with a link to each. Errors first. */
+function groupFindings(findings: DraftFinding[]): FindingGroup[] {
+  const groups = new Map<string, FindingGroup>();
+  for (const f of findings) {
+    const key = `${f.severity}|${f.source}|${f.kind}|${f.message}`;
+    const group = groups.get(key) ?? { key, severity: f.severity, message: f.message, suggestion: f.suggestion, source: f.source, items: [] };
+    group.items.push(f);
+    groups.set(key, group);
+  }
+  const order = ["error", "warning", "info"];
+  return [...groups.values()].sort((a, b) => order.indexOf(a.severity) - order.indexOf(b.severity));
 }
 
 type AchievementMap = Map<string, { id: string; headline: string; factStatus: "verified" | "approximate" | "private" | "needs_confirmation" }>;

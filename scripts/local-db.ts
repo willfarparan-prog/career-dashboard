@@ -13,7 +13,14 @@ import { openSandbox } from "../src/db/sandbox";
 
 const dir = path.resolve(process.argv.find((arg) => arg.startsWith("--dir="))?.slice(6) ?? ".local-db");
 if (process.argv.includes("--reset") && existsSync(dir)) rmSync(dir, { recursive: true, force: true });
-const { client } = await openSandbox(dir);
-const { rows } = await client.query<{ count: number }>("select count(*)::int as count from information_schema.tables where table_schema = 'public'");
-console.log(`Sandbox ready at ${dir} (${rows[0]?.count ?? 0} tables)`);
-await client.close();
+async function main() {
+  const { client } = await openSandbox(dir);
+  const { rows } = await client.query<{ count: number }>("select count(*)::int as count from information_schema.tables where table_schema = 'public'");
+  console.log(`Sandbox ready at ${dir} (${rows[0]?.count ?? 0} tables)`);
+  await client.close();
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

@@ -67,6 +67,14 @@ function describeJob(job: DraftJob, careerPath: CareerPath, emphasis: string) {
 
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
+/** One sentence from an achievement's own words: what was done, plus the outcome unless it already says it. */
+export function achievementSentence(a: { action: string; headline: string; outcome: string }): string {
+  const base = capitalize((a.action || a.headline).trim().replace(/\.$/, ""));
+  const outcome = a.outcome.trim().replace(/\.$/, "");
+  if (!outcome || base.toLowerCase().includes(outcome.toLowerCase())) return `${base}.`;
+  return `${base}; ${outcome.charAt(0).toLowerCase()}${outcome.slice(1)}.`;
+}
+
 /** A no-Claude draft straight from the library: each achievement becomes one bullet. */
 export function libraryDraft(context: LibraryContext, headline: string): DraftOutput {
   const roles = [...context.roleByAlias.entries()].map(([alias, role]) => ({
@@ -74,11 +82,7 @@ export function libraryDraft(context: LibraryContext, headline: string): DraftOu
     bullets: [...context.achievementByAlias.entries()]
       .filter(([, a]) => a.roleId === role.id)
       .slice(0, 5)
-      .map(([aliasA, a]) => {
-        const base = capitalize((a.action || a.headline).trim().replace(/\.$/, ""));
-        const outcome = a.outcome.trim().replace(/\.$/, "");
-        return { text: outcome ? `${base}; ${outcome.charAt(0).toLowerCase()}${outcome.slice(1)}.` : `${base}.`, achievement: aliasA, jobTerms: [] };
-      }),
+      .map(([aliasA, a]) => ({ text: achievementSentence(a), achievement: aliasA, jobTerms: [] })),
   }));
   const evidence = [...context.achievementByAlias.keys()].slice(0, 2);
   const skills = context.text

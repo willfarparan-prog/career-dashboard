@@ -340,7 +340,7 @@ function GapsCard({ requirements, analyzed }: { requirements: JobRequirement[]; 
                 {gaps.map((r) => (
                   <li key={r.id} className="flex flex-wrap items-baseline gap-2">
                     <Badge tone={r.kind === "must" ? "bad" : "neutral"}>{KIND_SINGULAR[r.kind]}</Badge>
-                    <span className="min-w-0 flex-1">{r.text}</span>
+                    <span className="min-w-[12rem] flex-1">{r.text}</span>
                   </li>
                 ))}
               </ul>
@@ -389,7 +389,7 @@ function RequirementRow({ requirement: r, detail }: { requirement: JobRequiremen
   return (
     <li className="py-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <p className="min-w-0 flex-1 text-sm">{r.text}</p>
+        <p className="min-w-[12rem] flex-1 text-sm">{r.text}</p>
         <div className="flex flex-wrap items-center gap-2">
           <EvidenceBadge label={r.label} />
           <ActionForm action={overrideLabelAction}>

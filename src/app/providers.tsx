@@ -12,6 +12,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <NeonAuthUIProvider
       authClient={authClient}
       baseURL={process.env.NEXT_PUBLIC_APP_URL ?? ""}
+      defaultTheme="system"
       redirectTo="/auth/continue"
       navigate={router.push}
       replace={router.replace}

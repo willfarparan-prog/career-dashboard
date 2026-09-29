@@ -10,7 +10,7 @@ import {
   type CareerPath,
 } from "@/db/schema";
 import { buildLibraryContext, loadLibrary, resolveAliases, type Library, type LibraryContext } from "@/lib/ai/library";
-import { libraryDraft, runDraft, type DraftOutput, PROMPT_VERSION as DRAFT_PROMPT } from "@/lib/ai/tasks/draft";
+import { achievementSentence, libraryDraft, runDraft, type DraftOutput, PROMPT_VERSION as DRAFT_PROMPT } from "@/lib/ai/tasks/draft";
 import { runRegenerate, type RegenerateControls } from "@/lib/ai/tasks/regenerate";
 import { runReview } from "@/lib/ai/tasks/review";
 import { findingKey, runTruthChecks } from "@/lib/checks/truth";
@@ -269,9 +269,7 @@ export async function addBulletFromAchievement(db: Database, userId: string, dra
   const library = await loadLibrary(db, userId);
   const achievement = library.achievements.find((a) => a.id === achievementId);
   if (!achievement) throw new DraftError("Achievement not found.");
-  const outcome = achievement.outcome.trim().replace(/\.$/, "");
-  const base = (achievement.action || achievement.headline).trim().replace(/\.$/, "");
-  const text = `${base.charAt(0).toUpperCase()}${base.slice(1)}${outcome ? `; ${outcome.charAt(0).toLowerCase()}${outcome.slice(1)}` : ""}.`;
+  const text = achievementSentence(achievement);
   const [{ max }] = await db.select({ max: sql<number>`coalesce(max(${resumeBullets.position}), -1)::int` }).from(resumeBullets).where(eq(resumeBullets.draftId, draftId));
   await db.insert(resumeBullets).values({ userId, draftId, roleId: achievement.roleId, achievementId, text, originalText: text, state: "accepted", position: Number(max) + 1 });
   await touchDraft(db, draftId);

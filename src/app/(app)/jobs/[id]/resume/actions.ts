@@ -102,7 +102,11 @@ export async function reviewAction(_: State, formData: FormData) {
 }
 
 export async function findingAction(_: State, formData: FormData) {
-  return attempt((db, userId) => drafts.setFindingResolved(db, userId, field(formData, "findingId"), field(formData, "resolved") === "true"));
+  const ids = formData.getAll("findingId").filter((id): id is string => typeof id === "string" && Boolean(id));
+  const resolved = field(formData, "resolved") === "true";
+  return attempt(async (db, userId) => {
+    for (const id of ids) await drafts.setFindingResolved(db, userId, id, resolved);
+  });
 }
 
 export async function approveAction(_: State, formData: FormData) {
