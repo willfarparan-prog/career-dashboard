@@ -308,3 +308,87 @@ export const aiRuns = pgTable("ai_runs", {
   refId: text("ref_id"),
   createdAt: createdAt(),
 }, (t) => [index("ai_runs_user_created_idx").on(t.userId, t.createdAt)]);
+
+/*
+ * Discover: postings found by saved searches (JSearch — Google Jobs incl.
+ * LinkedIn/Indeed/Glassdoor listings — Adzuna, Himalayas, Remotive, We Work
+ * Remotely) or captured with the bookmarklet. A lead becomes a job only when
+ * the owner saves it to the pipeline. Nothing here applies anywhere.
+ */
+export const LEAD_SOURCES = ["jsearch", "adzuna", "himalayas", "remotive", "wwr"] as const;
+export type LeadSource = (typeof LEAD_SOURCES)[number];
+
+export const LEAD_STATUSES = ["new", "saved", "dismissed"] as const;
+export type LeadStatus = (typeof LEAD_STATUSES)[number];
+
+export type ApplyOption = { publisher: string; url: string; isDirect: boolean };
+export type ScoreReason = { label: string; points: number };
+
+export const jobSearches = pgTable("job_searches", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  name: text("name").notNull(),
+  /** What to search for, e.g. "customer success manager". */
+  query: text("query").notNull(),
+  /** Free-text location, e.g. "Tampa, FL"; empty = anywhere. */
+  location: text("location").notNull().default(""),
+  remoteOnly: boolean("remote_only").notNull().default(false),
+  sources: jsonb("sources").$type<LeadSource[]>().notNull().default(["jsearch", "adzuna", "himalayas", "remotive", "wwr"]),
+  /** Only postings from the last N days. */
+  maxAgeDays: integer("max_age_days").notNull().default(7),
+  active: boolean("active").notNull().default(true),
+  lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [index("job_searches_user_idx").on(t.userId)]);
+
+export const jobLeads = pgTable("job_leads", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  source: text("source", { enum: LEAD_SOURCES }).notNull(),
+  /** The source's own id for the posting. */
+  externalId: text("external_id").notNull(),
+  searchId: uuid("search_id").references(() => jobSearches.id, { onDelete: "set null" }),
+  /** Normalized company|title, to spot the same job from two sources or already in the pipeline. */
+  dedupeKey: text("dedupe_key").notNull(),
+  title: text("title").notNull(),
+  company: text("company").notNull().default(""),
+  location: text("location").notNull().default(""),
+  isRemote: boolean("is_remote").notNull().default(false),
+  salaryMin: integer("salary_min"),
+  salaryMax: integer("salary_max"),
+  salaryText: text("salary_text").notNull().default(""),
+  /** Where the listing was published, e.g. "LinkedIn", "Indeed" (JSearch), or the board name. */
+  publisher: text("publisher").notNull().default(""),
+  /** The link to open (official apply page when known). */
+  url: text("url").notNull(),
+  applyOptions: jsonb("apply_options").$type<ApplyOption[]>().notNull().default([]),
+  description: text("description").notNull().default(""),
+  postedAt: timestamp("posted_at", { withTimezone: true }),
+  score: integer("score").notNull().default(0),
+  scoreReasons: jsonb("score_reasons").$type<ScoreReason[]>().notNull().default([]),
+  status: text("status", { enum: LEAD_STATUSES }).notNull().default("new"),
+  jobId: uuid("job_id").references(() => jobs.id, { onDelete: "set null" }),
+  firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("job_leads_source_external_idx").on(t.userId, t.source, t.externalId),
+  index("job_leads_user_status_idx").on(t.userId, t.status),
+  index("job_leads_dedupe_idx").on(t.userId, t.dedupeKey),
+]);
+
+/** One fetch from one source for one search: throttling, quotas and the status shown on Discover. */
+export const discoverRuns = pgTable("discover_runs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  source: text("source", { enum: LEAD_SOURCES }).notNull(),
+  searchId: uuid("search_id").references(() => jobSearches.id, { onDelete: "set null" }),
+  query: text("query").notNull().default(""),
+  status: text("status", { enum: ["ok", "error", "skipped"] }).notNull(),
+  /** Requests spent against the source's quota (0 when skipped). */
+  requests: integer("requests").notNull().default(0),
+  found: integer("found").notNull().default(0),
+  added: integer("added").notNull().default(0),
+  message: text("message"),
+  createdAt: createdAt(),
+}, (t) => [index("discover_runs_user_source_idx").on(t.userId, t.source, t.createdAt)]);
