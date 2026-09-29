@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ActionForm, SubmitButton } from "@/components/forms";
-import { Card, Notice, formatDate } from "@/components/ui";
+import { Card, Notice, formatDate, StatusPath } from "@/components/ui";
 import { requireDatabase } from "@/db";
 import { addDays, isoDay } from "@/lib/applications/dates";
 import { ensureApplicationForJob, isFrozen, loadApplyOptions, loadSentFiles, type Application, type CoverLetterOption, type DraftOption } from "@/lib/applications/queries";
@@ -105,6 +105,9 @@ export async function ApplicationSection({ jobId }: { jobId: string }) {
           </Link>
         }
       >
+        <div className="mb-4">
+          <StatusPath status={application.status} />
+        </div>
         <div className="grid gap-4 sm:grid-cols-[12rem_minmax(0,1fr)] sm:items-start">
           <StatusSelect applicationId={application.id} status={application.status} frozen={frozen} />
           <NextActionForm applicationId={application.id} nextAction={application.nextAction} nextActionDate={application.nextActionDate} />

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActionForm, SubmitButton } from "@/components/forms";
-import { Card, Notice, PageHeader, StatusBadge, STATUS_OPTIONS, formatDate } from "@/components/ui";
+import { Card, Notice, PageHeader, StatusBadge, StatusPath, STATUS_OPTIONS, formatDate } from "@/components/ui";
 import { requireDatabase } from "@/db";
 import { isoDay } from "@/lib/applications/dates";
 import { getApplication, isFrozen } from "@/lib/applications/queries";
@@ -38,6 +38,9 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
         }
         actions={<StatusBadge status={application.status} />}
       />
+      <div className="mb-3 rounded-lg border border-border bg-card px-4 py-3 shadow-card">
+        <StatusPath status={application.status} />
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <Card title="Tracking" description="Status, follow-ups and who you're talking to.">
