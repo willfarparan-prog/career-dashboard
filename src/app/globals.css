@@ -89,34 +89,36 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Form controls share one look. */
-.field {
-  display: grid;
-  gap: 0.35rem;
-  font-size: 0.875rem;
-}
-.field > span {
-  font-weight: 500;
-}
-.field small {
-  color: var(--muted-foreground);
-  font-size: 0.75rem;
-}
-.input {
-  width: 100%;
-  border: 1px solid var(--input);
-  background: var(--card);
-  color: var(--foreground);
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.65rem;
-  font-size: 0.875rem;
-  line-height: 1.4;
-}
-.input:focus {
-  outline: 2px solid var(--ring);
-  outline-offset: 1px;
-}
-textarea.input {
-  min-height: 5rem;
-  resize: vertical;
+/* Form controls share one look. In a layer so Tailwind utilities can override them. */
+@layer components {
+  .field {
+    display: grid;
+    gap: 0.35rem;
+    font-size: 0.875rem;
+  }
+  .field > span {
+    font-weight: 500;
+  }
+  .field small {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+  }
+  .input {
+    width: 100%;
+    border: 1px solid var(--input);
+    background: var(--card);
+    color: var(--foreground);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+  .input:focus {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+  textarea.input {
+    min-height: 5rem;
+    resize: vertical;
+  }
 }

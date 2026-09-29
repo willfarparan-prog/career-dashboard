@@ -15,5 +15,6 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!auth|api/auth|api/health|unauthorized|_next/static|_next/image|favicon.ico|icon.svg|robots.txt).*)"],
+  // API routes are excluded: each handler checks the owner itself and answers 401, not a redirect.
+  matcher: ["/((?!auth|api/|unauthorized|_next/static|_next/image|favicon.ico|icon.svg|robots.txt).*)"],
 };

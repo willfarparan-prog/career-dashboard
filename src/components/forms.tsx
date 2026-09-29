@@ -36,7 +36,9 @@ export function SubmitButton({ children, pending: pendingLabel, variant = "prima
 
 /**
  * A form bound to a server action that returns ActionResult. Shows the
- * action's message or error under the fields; optionally resets on success.
+ * action's message or error under the fields. React resets a form after its
+ * action runs; when the action fails, the submitted values are put back so a
+ * long paste isn't lost. Optionally stays cleared on success.
  */
 export function ActionForm({ action, children, className, resetOnSuccess = false }: {
   action: (state: ActionResult | null, formData: FormData) => Promise<ActionResult>;
@@ -44,10 +46,21 @@ export function ActionForm({ action, children, className, resetOnSuccess = false
   className?: string;
   resetOnSuccess?: boolean;
 }) {
-  const [state, formAction] = useActionState(action, null);
+  const submitted = useRef<FormData | null>(null);
+  const [state, formAction] = useActionState(async (previous: ActionResult | null, formData: FormData) => {
+    submitted.current = formData;
+    return action(previous, formData);
+  }, null);
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => {
-    if (resetOnSuccess && state?.ok) ref.current?.reset();
+    const form = ref.current;
+    if (!form || !state) return;
+    if (state.ok) {
+      if (resetOnSuccess) form.reset();
+      return;
+    }
+    const data = submitted.current;
+    if (data) restoreValues(form, data);
   }, [state, resetOnSuccess]);
   return (
     <form ref={ref} action={formAction} className={className}>
@@ -55,6 +68,25 @@ export function ActionForm({ action, children, className, resetOnSuccess = false
       <ActionMessage state={state} />
     </form>
   );
+}
+
+function restoreValues(form: HTMLFormElement, data: FormData) {
+  for (const element of Array.from(form.elements)) {
+    if (element instanceof HTMLTextAreaElement) {
+      const value = data.get(element.name);
+      if (typeof value === "string") element.value = value;
+    } else if (element instanceof HTMLSelectElement) {
+      const value = data.get(element.name);
+      if (typeof value === "string") element.value = value;
+    } else if (element instanceof HTMLInputElement && element.name) {
+      if (element.type === "checkbox" || element.type === "radio") {
+        element.checked = data.getAll(element.name).includes(element.value);
+      } else if (!["file", "hidden", "submit", "button", "password"].includes(element.type)) {
+        const value = data.get(element.name);
+        if (typeof value === "string") element.value = value;
+      }
+    }
+  }
 }
 
 export function ActionMessage({ state }: { state: ActionResult | null }) {
