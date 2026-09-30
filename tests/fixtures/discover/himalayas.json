@@ -1,0 +1,63 @@
+{
+  "comments": "Himalayas jobs API",
+  "updatedAt": 1790690000,
+  "offset": 0,
+  "limit": 20,
+  "totalCount": 4,
+  "jobs": [
+    {
+      "title": "Customer Success Manager",
+      "excerpt": "Own the post-sale journey for 60 mid-market customers.",
+      "companyName": "Lumen Wellness",
+      "companySlug": "lumen-wellness",
+      "companyLogo": "https://cdn.himalayas.app/lumen.png",
+      "employmentType": "Full Time",
+      "minSalary": 80000,
+      "maxSalary": 100000,
+      "seniority": ["Mid-level"],
+      "currency": "USD",
+      "locationRestrictions": ["United States", "Canada"],
+      "timezoneRestrictions": [-5, -8],
+      "categories": ["Customer-Success"],
+      "parentCategories": ["Customer Service"],
+      "description": "<h2>About the role</h2><p>You&rsquo;ll guide employers through onboarding &amp; renewals.</p><ul><li>Run QBRs</li><li>Drive adoption</li></ul><script>track()</script>",
+      "pubDate": 1790596800,
+      "expiryDate": 1795780800,
+      "applicationLink": "https://himalayas.app/companies/lumen-wellness/jobs/customer-success-manager",
+      "guid": "https://himalayas.app/companies/lumen-wellness/jobs/customer-success-manager"
+    },
+    {
+      "title": "Senior Backend Engineer",
+      "excerpt": "Go and Postgres.",
+      "companyName": "Stackly",
+      "minSalary": 150000,
+      "maxSalary": 190000,
+      "currency": "USD",
+      "locationRestrictions": [],
+      "description": "<p>Build APIs.</p>",
+      "pubDate": 1790596800,
+      "applicationLink": "https://himalayas.app/companies/stackly/jobs/senior-backend-engineer",
+      "guid": "himalayas-stackly-backend"
+    },
+    {
+      "title": "Customer Success Lead",
+      "excerpt": "Lead a small CS team in Europe.",
+      "companyName": "Eurohealth",
+      "minSalary": 60000,
+      "maxSalary": 70000,
+      "currency": "EUR",
+      "locationRestrictions": [{ "name": "Germany" }],
+      "description": "",
+      "pubDate": 1790424000,
+      "applicationLink": "https://himalayas.app/companies/eurohealth/jobs/customer-success-lead",
+      "guid": "himalayas-eurohealth-cs-lead"
+    },
+    {
+      "title": "Customer Success Manager",
+      "companyName": "Oldco",
+      "pubDate": 1785542400,
+      "applicationLink": "https://himalayas.app/companies/oldco/jobs/csm",
+      "guid": "himalayas-oldco-csm"
+    }
+  ]
+}

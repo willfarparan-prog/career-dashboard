@@ -1,0 +1,53 @@
+{
+  "__CLASS__": "Adzuna::API::Response::JobSearchResults",
+  "count": 4,
+  "mean": 78000,
+  "results": [
+    {
+      "__CLASS__": "Adzuna::API::Response::Job",
+      "id": "4412345678",
+      "adref": "eyJhbGciOiJIUzI1NiJ9",
+      "title": "<strong>Customer Success</strong> Manager",
+      "description": "Join our team as a <strong>Customer Success</strong> Manager &amp; own onboarding for employer clients. You will partner with sales&hellip;",
+      "created": "2026-09-28T09:00:00Z",
+      "redirect_url": "https://www.adzuna.com/details/4412345678?utm_medium=api",
+      "company": { "__CLASS__": "Adzuna::API::Response::Company", "display_name": "Summit Benefits" },
+      "location": { "__CLASS__": "Adzuna::API::Response::Location", "display_name": "Tampa, Hillsborough County", "area": ["US", "Florida", "Hillsborough County", "Tampa"] },
+      "category": { "__CLASS__": "Adzuna::API::Response::Category", "label": "Customer Services Jobs", "tag": "customer-services-jobs" },
+      "salary_min": 70000,
+      "salary_max": 90000,
+      "salary_is_predicted": "0",
+      "contract_time": "full_time",
+      "latitude": 27.95,
+      "longitude": -82.46
+    },
+    {
+      "id": 4412345679,
+      "title": "Remote Client Success Manager",
+      "description": "Fully remote role supporting healthcare clients.",
+      "created": "2026-09-26T12:00:00Z",
+      "redirect_url": "https://www.adzuna.com/details/4412345679",
+      "company": { "display_name": "Carewell" },
+      "location": { "display_name": "US" },
+      "salary_min": 65000,
+      "salary_max": 65000,
+      "salary_is_predicted": "1"
+    },
+    {
+      "id": "4400000001",
+      "title": "Customer Success Manager",
+      "description": "Old posting.",
+      "created": "2026-07-01T00:00:00Z",
+      "redirect_url": "https://www.adzuna.com/details/4400000001",
+      "company": { "display_name": "Oldco" },
+      "location": { "display_name": "Tampa, Hillsborough County" }
+    },
+    {
+      "id": "4400000002",
+      "title": "Account Manager",
+      "description": "No link on this one.",
+      "created": "2026-09-28T00:00:00Z",
+      "company": { "display_name": "Linkless" }
+    }
+  ]
+}

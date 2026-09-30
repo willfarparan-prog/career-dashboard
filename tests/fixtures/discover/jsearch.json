@@ -1,0 +1,93 @@
+{
+  "status": "OK",
+  "request_id": "5c1f3a2e-0000-4a4b-9c1d-2e3f4a5b6c7d",
+  "parameters": { "query": "customer success manager in Tampa, FL", "page": 1, "num_pages": 1, "date_posted": "week", "country": "us" },
+  "data": [
+    {
+      "job_id": "jsA1xYz==",
+      "employer_name": "Acme Health",
+      "employer_logo": "https://logo.example/acme.png",
+      "employer_website": "https://acmehealth.example",
+      "job_publisher": "LinkedIn",
+      "job_employment_type": "FULLTIME",
+      "job_title": "Customer Success Manager",
+      "job_apply_link": "https://www.linkedin.com/jobs/view/4012345678",
+      "job_apply_is_direct": false,
+      "apply_options": [
+        { "publisher": "LinkedIn", "apply_link": "https://www.linkedin.com/jobs/view/4012345678", "is_direct": false },
+        { "publisher": "Acme Health Careers", "apply_link": "https://careers.acmehealth.example/jobs/csm-123", "is_direct": true },
+        { "publisher": "Indeed", "apply_link": "https://www.indeed.com/viewjob?jk=abc123", "is_direct": false }
+      ],
+      "job_description": "Acme Health helps employers run wellbeing programs.\n\nWhat you'll do:\n•  Own a book of 40 employer accounts\n•  Lead onboarding &amp; quarterly reviews\n\n\n\nWhat you bring: 3+ years in customer success.",
+      "job_is_remote": false,
+      "job_posted_at_timestamp": 1790604000,
+      "job_posted_at_datetime_utc": "2026-09-28T14:00:00.000Z",
+      "job_location": "Tampa, FL",
+      "job_city": "Tampa",
+      "job_state": "Florida",
+      "job_country": "US",
+      "job_min_salary": 85000,
+      "job_max_salary": 100000,
+      "job_salary_period": "YEAR",
+      "job_salary_currency": "USD"
+    },
+    {
+      "job_id": "jsB2",
+      "employer_name": "Brightline",
+      "job_publisher": "Indeed",
+      "job_title": "Implementation Specialist",
+      "job_apply_link": "https://brightline.example/careers/impl-9",
+      "job_apply_is_direct": true,
+      "apply_options": [],
+      "job_description": "<p>Help new customers go live.</p><ul><li>Configure accounts</li><li>Train admins</li></ul>",
+      "job_is_remote": true,
+      "job_posted_at_datetime_utc": "2026-09-27T08:30:00.000Z",
+      "job_location": "Anywhere",
+      "job_min_salary": 30,
+      "job_max_salary": 40,
+      "job_salary_period": "HOUR",
+      "job_salary_currency": "USD"
+    },
+    {
+      "job_id": "jsC3",
+      "employer_name": "Northwind",
+      "job_publisher": "Glassdoor",
+      "job_title": "Account Manager",
+      "job_apply_link": "https://www.glassdoor.com/job-listing/northwind-am",
+      "job_apply_is_direct": false,
+      "job_description": "Grow relationships with mid-market clients.",
+      "job_is_remote": false,
+      "job_posted_at_timestamp": 1790380800,
+      "job_city": "St. Petersburg",
+      "job_state": "FL",
+      "job_country": "US",
+      "job_min_salary": 6000,
+      "job_max_salary": 7000,
+      "job_salary_period": "MONTH",
+      "job_salary_currency": "USD"
+    },
+    {
+      "job_id": "jsOLD",
+      "employer_name": "Oldco",
+      "job_publisher": "ZipRecruiter",
+      "job_title": "Customer Success Manager",
+      "job_apply_link": "https://www.ziprecruiter.com/jobs/oldco",
+      "job_posted_at_datetime_utc": "2026-08-01T00:00:00.000Z"
+    },
+    {
+      "job_id": "jsNOTITLE",
+      "employer_name": "Nameless",
+      "job_apply_link": "https://nameless.example/jobs/1"
+    },
+    {
+      "job_id": "jsNOLINK",
+      "employer_name": "Linkless",
+      "job_title": "Client Success Manager",
+      "apply_options": []
+    },
+    {
+      "job_title": "Customer Onboarding Specialist",
+      "job_apply_link": "https://minimal.example/jobs/onboarding"
+    }
+  ]
+}

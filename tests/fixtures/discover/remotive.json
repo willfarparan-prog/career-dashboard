@@ -1,0 +1,51 @@
+{
+  "00-warning": "This API is rate limited. Please link back to Remotive.",
+  "0-legal-notice": "Remotive API Legal Notice",
+  "job-count": 4,
+  "total-job-count": 4,
+  "jobs": [
+    {
+      "id": 1934567,
+      "url": "https://remotive.com/remote-jobs/customer-support/customer-success-manager-1934567",
+      "title": "Customer Success Manager",
+      "company_name": "Harbor HR",
+      "company_logo": "https://remotive.com/job/1934567/logo",
+      "category": "Customer Service",
+      "tags": ["customer success", "saas"],
+      "job_type": "full_time",
+      "publication_date": "2026-09-28T10:15:00",
+      "candidate_required_location": "USA Only",
+      "salary": "$70k - $90k",
+      "description": "<p><strong>Harbor HR</strong> builds benefits software&nbsp;for small employers.</p><p>You will:</p><ul><li>Onboard new accounts</li><li>Reduce churn &amp; grow expansion</li></ul><p>&#x2714; Fully remote</p>"
+    },
+    {
+      "id": 1934568,
+      "url": "https://remotive.com/remote-jobs/customer-support/client-success-manager-1934568",
+      "title": "Client Success Manager",
+      "company_name": "Eurotech",
+      "category": "Customer Service",
+      "job_type": "full_time",
+      "publication_date": "2026-09-25T00:00:00",
+      "candidate_required_location": "Europe",
+      "salary": "€50,000 - €60,000",
+      "description": "<p>Client success in Europe.</p>"
+    },
+    {
+      "id": 1934569,
+      "title": "Customer Success Manager",
+      "company_name": "No URL Inc",
+      "publication_date": "2026-09-28T00:00:00",
+      "description": "<p>Missing url.</p>"
+    },
+    {
+      "id": 1800000,
+      "url": "https://remotive.com/remote-jobs/customer-support/old-1800000",
+      "title": "Customer Success Manager",
+      "company_name": "Oldco",
+      "publication_date": "2026-06-01T00:00:00",
+      "candidate_required_location": "Worldwide",
+      "salary": "",
+      "description": "<p>Old.</p>"
+    }
+  ]
+}

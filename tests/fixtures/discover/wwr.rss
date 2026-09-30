@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <title>We Work Remotely: Customer Support Jobs</title>
+    <link>https://weworkremotely.com/categories/remote-customer-support-jobs</link>
+    <description>We Work Remotely: Customer Support Jobs</description>
+    <language>en-US</language>
+    <ttl>60</ttl>
+    <item>
+      <title>Acme Health: Customer Success Manager</title>
+      <region>USA Only</region>
+      <country>United States</country>
+      <category>Customer Support</category>
+      <type>Full-Time</type>
+      <description><![CDATA[<img src="https://wwr-pro.s3.amazonaws.com/logos/acme.png" alt="Acme" /><p><strong>Headquarters:</strong> Denver, CO<br /><strong>URL:</strong> <a href="https://acme.example">https://acme.example</a></p><p>Own onboarding &amp; renewals for employer clients.</p><ul><li>Run QBRs</li><li>Drive adoption</li></ul>]]></description>
+      <pubDate>Mon, 28 Sep 2026 14:05:12 +0000</pubDate>
+      <expires_at>Wed, 28 Oct 2026 14:05:12 +0000</expires_at>
+      <guid>https://weworkremotely.com/remote-jobs/acme-health-customer-success-manager</guid>
+      <link>https://weworkremotely.com/remote-jobs/acme-health-customer-success-manager</link>
+    </item>
+    <item>
+      <title>Globex: Senior Customer Support Specialist</title>
+      <region>Anywhere in the World</region>
+      <description><![CDATA[<p>Answer tickets in Zendesk, nights and weekends.</p>]]></description>
+      <pubDate>Mon, 28 Sep 2026 10:00:00 +0000</pubDate>
+      <guid>https://weworkremotely.com/remote-jobs/globex-senior-customer-support-specialist</guid>
+      <link>https://weworkremotely.com/remote-jobs/globex-senior-customer-support-specialist</link>
+    </item>
+    <item>
+      <title>Initech: Customer Success Associate</title>
+      <region>North America Only</region>
+      <description>&lt;p&gt;Help customers succeed with our payroll product.&lt;/p&gt;</description>
+      <pubDate>Sun, 27 Sep 2026 09:00:00 +0000</pubDate>
+      <guid isPermaLink="false">wwr-initech-csa</guid>
+      <link>https://weworkremotely.com/remote-jobs/initech-customer-success-associate</link>
+    </item>
+    <item>
+      <title>Oldco: Customer Success Manager</title>
+      <region>Anywhere in the World</region>
+      <description><![CDATA[<p>Old.</p>]]></description>
+      <pubDate>Sat, 01 Aug 2026 09:00:00 +0000</pubDate>
+      <guid>https://weworkremotely.com/remote-jobs/oldco-csm</guid>
+      <link>https://weworkremotely.com/remote-jobs/oldco-csm</link>
+    </item>
+    <item>
+      <title>Linkless: Customer Success Manager</title>
+      <description><![CDATA[<p>No link or guid.</p>]]></description>
+      <pubDate>Mon, 28 Sep 2026 09:00:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>

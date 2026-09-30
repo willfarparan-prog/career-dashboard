@@ -1,0 +1,26 @@
+{
+  "offset": 0,
+  "limit": 20,
+  "totalCount": 2,
+  "jobs": [
+    {
+      "title": "Customer Success Manager (EMEA)",
+      "excerpt": "Support enterprise customers.",
+      "companyName": "Orbit",
+      "currency": "USD",
+      "locationRestrictions": ["United Kingdom"],
+      "description": "<p>Support enterprise customers across EMEA.</p>",
+      "pubDate": 1790596800,
+      "applicationLink": "https://himalayas.app/companies/orbit/jobs/csm-emea",
+      "guid": "himalayas-orbit-csm-emea"
+    },
+    {
+      "title": "Product Designer",
+      "companyName": "Pixel",
+      "description": "<p>Design things.</p>",
+      "pubDate": 1790596800,
+      "applicationLink": "https://himalayas.app/companies/pixel/jobs/product-designer",
+      "guid": "himalayas-pixel-designer"
+    }
+  ]
+}
