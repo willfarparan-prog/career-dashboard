@@ -9,7 +9,10 @@ import {
   careerImports,
   coverLetters,
   credentials,
+  discoverRuns,
+  jobLeads,
   jobRequirements,
+  jobSearches,
   jobs,
   profiles,
   qualityFindings,
@@ -50,6 +53,10 @@ async function seedEverything(userId: string) {
   await db.insert(qualityFindings).values({ userId, draftId: draft.id, bulletId: bullet.id, kind: "x", severity: "info", message: "ok", source: "rule" });
   const [letter] = await db.insert(coverLetters).values({ userId, jobId: job.id, paragraphs: [{ text: "Hello.", evidence: [] }] }).returning();
   await db.insert(aiRuns).values({ userId, task: "analyze", model: "fake", promptVersion: "analyze@1", status: "ok", costUsd: 0.01 });
+  // Discover: a saved search, a posting it found, and the fetch that found it.
+  const [search] = await db.insert(jobSearches).values({ userId, name: "CSM", query: "customer success manager" }).returning();
+  await db.insert(jobLeads).values({ userId, source: "remotive", externalId: `lead-${userId}`, searchId: search.id, dedupeKey: "acme|csm", title: "CSM", company: "Acme", url: "https://example.com/jobs/1" });
+  await db.insert(discoverRuns).values({ userId, source: "remotive", searchId: search.id, query: "customer success manager", status: "ok", requests: 1, found: 1, added: 1 });
   const result = await markApplied(db, userId, application.id, { resumeDraftId: draft.id, coverLetterId: letter.id });
   assert.ok(result.ok, result.ok ? "" : result.error);
 }
