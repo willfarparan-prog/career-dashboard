@@ -373,6 +373,21 @@ test("a refusal from a source with no API key doesn't tell you to check a key; o
   }
 });
 
+test("a vendor's reason is stored with the failure, minus any secret it echoes", async () => {
+  setEnv({ JSEARCH_API_KEY: "test-jsearch-key" });
+  await addProfile("u-reason");
+  await createSearch(db, "u-reason", { query: "customer success manager" });
+  const { fetchImpl } = fakeSources({ jsearch: 404, himalayas: [CSM], remotive: [], wwr: [] });
+  const echoing: FetchLike = async (input, init) =>
+    String(input).includes("rapidapi.com")
+      ? new Response(JSON.stringify({ message: "Unknown key test-jsearch-key for this API" }), { status: 404, headers: { "content-type": "application/json" } })
+      : fetchImpl(input, init);
+  const summary = await refreshSearches(db, "u-reason", { fetchImpl: echoing });
+  const jsearchRun = summary.runs.find((r) => r.source === "jsearch");
+  assert.equal(jsearchRun?.status, "error");
+  assert.equal(jsearchRun?.message, "JSearch returned 404 (not found): Unknown key [redacted] for this API.");
+});
+
 test("refresh only touches the given user's searches, leads and runs", async () => {
   setEnv({ JSEARCH_API_KEY: "test-jsearch-key" });
   await addProfile("u-a");

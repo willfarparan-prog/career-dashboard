@@ -183,13 +183,31 @@ describe("JSearch", () => {
     const limited = fakeFetch(() => json('{"message":"Too many requests"}', 429));
     await assert.rejects(jsearch.fetch(SPEC, limited.fetchImpl), (error: unknown) => {
       assert.ok(error instanceof SourceError);
-      assert.equal(error.message, "JSearch returned 429 (rate limited).");
+      assert.equal(error.message, "JSearch returned 429 (rate limited): Too many requests.");
       assert.equal(error.requests, 1);
       assert.doesNotMatch(error.message, /test-jsearch-key/);
       return true;
     });
     const apiError = fakeFetch(() => json(JSON.stringify({ status: "ERROR", error: { message: "Invalid query" } })));
     await assert.rejects(jsearch.fetch(SPEC, apiError.fetchImpl), /JSearch returned an error: Invalid query/);
+  });
+
+  test("a refusal says why in the vendor's own words, when it gives a JSON reason", async () => {
+    setEnv({ JSEARCH_API_KEY: "test-jsearch-key" });
+    const notFound = fakeFetch(() => json(`{"message":"Endpoint '/search' does not exist"}`, 404));
+    await assert.rejects(jsearch.fetch(SPEC, notFound.fetchImpl), (error: unknown) => {
+      assert.ok(error instanceof SourceError);
+      assert.equal(error.message, "JSearch returned 404 (not found): Endpoint '/search' does not exist.");
+      assert.equal(error.requests, 1);
+      return true;
+    });
+    const notSubscribed = fakeFetch(() => json(JSON.stringify({ error: { message: "You are not subscribed to this API." } }), 403));
+    await assert.rejects(jsearch.fetch(SPEC, notSubscribed.fetchImpl), /JSearch returned 403 \(check the API key or plan\): You are not subscribed to this API\.$/);
+    // HTML error pages, empty bodies and oversized bodies add nothing.
+    for (const body of ["<html><body>Not Found</body></html>", "", "x".repeat(30_000)]) {
+      const plain = fakeFetch(() => json(body, 404));
+      await assert.rejects(jsearch.fetch(SPEC, plain.fetchImpl), (error: unknown) => error instanceof SourceError && error.message === "JSearch returned 404 (not found).");
+    }
   });
 
   test("missing key: not configured, and fetch refuses without calling out", async () => {

@@ -47,6 +47,24 @@ export function redact(message: string, secrets: string[]): string {
   return out;
 }
 
+/**
+ * The vendor's own one-line reason from a JSON error body ({"message": "…"}),
+ * so a failure says why and not only the status. Anything else (HTML, empty,
+ * huge) gives "". Callers redact configured secrets from the final message.
+ */
+async function errorDetail(response: Response): Promise<string> {
+  try {
+    const text = await response.text();
+    if (text.length > 20_000) return "";
+    const body = asRecord(JSON.parse(text));
+    const error = body.error;
+    const reason = str(body.message) || str(body.detail) || (typeof error === "string" ? error.trim() : str(asRecord(error).message));
+    return reason.replace(/\s+/g, " ").replace(/[.\s]+$/, "").slice(0, 160);
+  } catch {
+    return "";
+  }
+}
+
 /** Fetches once; throws a SourceError naming the source on network failure or a non-2xx status. */
 export async function request(fetchImpl: FetchLike, label: string, url: string, init: RequestInit = {}): Promise<Response> {
   let response: Response;
@@ -58,7 +76,8 @@ export async function request(fetchImpl: FetchLike, label: string, url: string, 
   }
   if (!response.ok) {
     const hint = STATUS_HINTS[response.status] ?? (response.status >= 500 ? "server error" : "");
-    throw new SourceError(`${label} returned ${response.status}${hint ? ` (${hint})` : ""}.`, 1);
+    const detail = await errorDetail(response);
+    throw new SourceError(`${label} returned ${response.status}${hint ? ` (${hint})` : ""}${detail ? `: ${detail}` : ""}.`, 1);
   }
   return response;
 }

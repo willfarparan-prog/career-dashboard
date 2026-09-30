@@ -373,6 +373,15 @@ describe("refreshMessage", () => {
     assert.equal(refreshMessage(summary, label), "Found 0, 0 new. We Work Remotely failed: returned 403 (the site refused the request).");
   });
 
+  test("carries the vendor's reason through to the summary", () => {
+    const summary: RefreshSummary = {
+      found: 0,
+      added: 0,
+      runs: [run({ source: "jsearch", status: "error", message: "JSearch returned 404 (not found): Endpoint '/search' does not exist." })],
+    };
+    assert.equal(refreshMessage(summary, label), "Found 0, 0 new. JSearch (Google Jobs) failed: returned 404 (not found): Endpoint '/search' does not exist.");
+  });
+
   test("keeps acronyms and explains when nothing ran", () => {
     assert.equal(
       refreshMessage({ found: 0, added: 0, runs: [run({ status: "skipped", message: "JSEARCH_API_KEY is missing" })] }, label),
