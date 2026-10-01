@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { eq } from "drizzle-orm";
 import type { Database } from "@/db";
-import { achievements, aiRuns, applications, careerImports, jobs, qualityFindings, resumeBullets, resumeDrafts, roles, snapshots } from "@/db/schema";
+import { achievements, aiRuns, applications, careerImports, jobs, learningItems, qualityFindings, resumeBullets, resumeDrafts, roles, snapshots } from "@/db/schema";
 import { dueState, parseDay } from "@/lib/applications/dates";
 import { gettingStarted, needsAttention, nextActions, overviewStats, upcomingDeadlines } from "@/lib/overview/dashboard";
 import { spendSummary } from "@/lib/overview/spend";
@@ -129,7 +129,7 @@ test("stats, spend and the getting-started checklist", async () => {
   const empty = await gettingStarted(db, user);
   assert.equal(empty.done, false);
   assert.ok(empty.steps.every((step) => !step.done));
-  assert.deepEqual(empty.steps.map((step) => step.key), ["import", "verify", "job", "draft", "export", "applied"]);
+  assert.deepEqual(empty.steps.map((step) => step.key), ["learn", "import", "verify", "job", "draft", "export", "applied"]);
 
   await job(user, {}, { status: "saved" });
   await job(user, {}, { status: "interview", submittedAt: new Date("2026-09-10T12:00:00Z") });
@@ -152,12 +152,14 @@ test("stats, spend and the getting-started checklist", async () => {
   const [target] = await db.insert(jobs).values({ userId: user, postingText: "x" }).returning();
   const [draft] = await db.insert(resumeDrafts).values({ userId: user, jobId: target.id, name: "v1", status: "approved" }).returning();
   const partial = await gettingStarted(db, user);
-  assert.deepEqual(partial.steps.filter((step) => !step.done).map((step) => step.key), ["applied"]);
+  assert.deepEqual(partial.steps.filter((step) => !step.done).map((step) => step.key), ["learn", "applied"]);
   assert.equal(partial.steps.find((step) => step.key === "applied")?.href, `/jobs/${target.id}#application`);
   assert.equal(partial.steps.find((step) => step.key === "export")?.href, `/jobs/${target.id}/resume/${draft.id}`);
 
   const [app] = await db.insert(applications).values({ userId: user, jobId: target.id }).returning();
   const [snap] = await db.insert(snapshots).values({ userId: user, kind: "resume", jobId: target.id, content: {}, renderedText: "x", contentHash: "h" }).returning();
   await db.update(applications).set({ resumeSnapshotId: snap.id, status: "applied" }).where(eq(applications.id, app.id));
+  assert.equal((await gettingStarted(db, user)).done, false);
+  await db.insert(learningItems).values({ userId: user, key: "guide:customer_success:workflow", status: "done" });
   assert.equal((await gettingStarted(db, user)).done, true);
 });

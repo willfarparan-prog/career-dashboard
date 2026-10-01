@@ -26,6 +26,8 @@ import {
   todayIso,
 } from "@/lib/jobs/format";
 import { getJobDetail, type JobDetail, type JobRequirement } from "@/lib/jobs/jobs";
+import { listProgress, termKey, type Progress } from "@/lib/learn/progress";
+import { findTerms, glossaryTerm } from "@/lib/learn/terms";
 import { analyzeJobAction, deleteJobAction, matchEvidenceAction, overrideLabelAction, postingStatusAction, updateFitAction } from "../actions";
 import { AutoSubmitSelect } from "./auto-submit-select";
 import { FitBreakdown, FitScore } from "./fit-breakdown";
@@ -48,7 +50,7 @@ export default async function JobPage({ params, searchParams }: {
   const [{ id }, query, { userId }] = await Promise.all([params, searchParams, requireViewer()]);
   const db = getDatabase();
   if (!db) return <Notice tone="warn">The database isn&apos;t connected yet. Set DATABASE_URL and reload.</Notice>;
-  const detail = await getJobDetail(db, userId, id);
+  const [detail, progress] = await Promise.all([getJobDetail(db, userId, id), listProgress(db, userId)]);
   if (!detail) notFound();
 
   const { job, application, alerts } = detail;
@@ -88,6 +90,7 @@ export default async function JobPage({ params, searchParams }: {
 
         <AnalysisCard detail={detail} />
         <GapsCard requirements={detail.requirements} analyzed={Boolean(job.analyzedAt)} />
+        <TermsCard postingText={job.postingText} progress={progress} />
         <RequirementsCard detail={detail} />
         <ScreeningCard requirements={detail.requirements} />
 
@@ -430,6 +433,57 @@ function ScreeningCard({ requirements }: { requirements: JobRequirement[] }) {
           <li key={q.id}>{q.text}</li>
         ))}
       </ol>
+    </Card>
+  );
+}
+
+/** Vocabulary from the posting that's in the Learn glossary, with definitions. */
+function TermsCard({ postingText, progress }: { postingText: string; progress: Progress }) {
+  const terms = findTerms(postingText)
+    .map((key) => glossaryTerm(key))
+    .filter((term) => term !== undefined);
+  if (!terms.length) return null;
+  const isKnown = (key: string) => progress.get(termKey(key)) === "confident";
+  const unknown = terms.filter((term) => !isKnown(term.key)).length;
+  return (
+    <Card
+      title="Terms in this posting"
+      description={unknown ? `${unknown} of ${terms.length} you haven't marked as known. Be ready to explain each one in an interview.` : "You've marked every term here as known."}
+      actions={
+        <Link href="/learn/glossary?show=unknown&practice=1" className={buttonClass("secondary", "sm")}>
+          Practice terms
+        </Link>
+      }
+    >
+      <ul className="flex flex-wrap gap-1.5" aria-label="Terms">
+        {terms.map((term) => {
+          const known = isKnown(term.key);
+          return (
+            <li key={term.key}>
+              <Link
+                href={`/learn/glossary#term-${term.key}`}
+                title={term.definition}
+                className={`inline-block rounded-md px-2 py-0.5 text-xs hover:bg-accent hover:text-accent-foreground ${known ? "bg-ok-soft text-ok" : "bg-muted text-foreground"}`}
+              >
+                {known ? "✓ " : ""}
+                {term.term}
+                {known ? <span className="sr-only"> (known)</span> : null}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      <details className="mt-3">
+        <summary className="cursor-pointer text-sm font-medium text-primary">Show definitions</summary>
+        <dl className="mt-2 divide-y divide-border text-sm">
+          {terms.map((term) => (
+            <div key={term.key} className="py-2">
+              <dt className="font-semibold">{term.term}</dt>
+              <dd className="mt-0.5">{term.definition}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
     </Card>
   );
 }

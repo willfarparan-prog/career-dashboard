@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Briefcase, FileUp, House, ListChecks, type LucideIcon, Radar, Settings, Trophy, UserRound } from "lucide-react";
+import { Activity, Briefcase, FileUp, GraduationCap, House, ListChecks, type LucideIcon, Radar, Settings, Trophy, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -12,6 +12,7 @@ export type Section = { href: string; label: string; icon: LucideIcon; color: st
 
 export const SECTIONS: Section[] = [
   { href: "/", label: "Home", icon: House, color: "#ef6e64", tab: true },
+  { href: "/learn", label: "Learn", icon: GraduationCap, color: "#3ba755", tab: true },
   { href: "/discover", label: "Discover", icon: Radar, color: "#0d9dda", tab: true },
   { href: "/jobs", label: "Jobs", icon: Briefcase, color: "#f4a24b", tab: true },
   { href: "/applications", label: "Applications", icon: ListChecks, color: "#f88962", tab: true },

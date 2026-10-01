@@ -10,7 +10,8 @@ A private, Claude-powered workspace for job applications. It is built on one rul
    - Rule checks catch numbers that aren't in the achievement, implied titles, SaaS claims without a SaaS role, date problems, duplicates and vague filler. Claude can also review the draft as a skeptical interviewer would.
 4. **Export.** DOCX, a text-based PDF, or plain text. A cover letter can be drafted from the same approved facts.
 5. **Track** (`/applications`). Marking a job *applied* freezes the exact resume, cover letter and posting in insert-only snapshots, which a database trigger protects. Next actions, contacts and outcomes stay beside them.
-6. **Claude activity** (`/activity`) logs every call's tokens and estimated cost. A daily budget caps spending.
+6. **Learn** (`/learn`). Field guides for each target path (workflow, metrics, tools, interview loop, and how coaching translates), a glossary with flashcards, and a gap roadmap that groups the gaps across your open jobs and links courses that cover them. The content is curated in `src/content/learn/`, not generated, and job pages flag the glossary terms each posting uses.
+7. **Claude activity** (`/activity`) logs every call's tokens and estimated cost. A daily budget caps spending.
 
 ## Stack
 

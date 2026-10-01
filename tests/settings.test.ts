@@ -14,6 +14,7 @@ import {
   jobRequirements,
   jobSearches,
   jobs,
+  learningItems,
   profiles,
   qualityFindings,
   resumeBullets,
@@ -57,6 +58,7 @@ async function seedEverything(userId: string) {
   const [search] = await db.insert(jobSearches).values({ userId, name: "CSM", query: "customer success manager" }).returning();
   await db.insert(jobLeads).values({ userId, source: "remotive", externalId: `lead-${userId}`, searchId: search.id, dedupeKey: "acme|csm", title: "CSM", company: "Acme", url: "https://example.com/jobs/1" });
   await db.insert(discoverRuns).values({ userId, source: "remotive", searchId: search.id, query: "customer success manager", status: "ok", requests: 1, found: 1, added: 1 });
+  await db.insert(learningItems).values({ userId, key: "term:nrr", status: "confident" });
   const result = await markApplied(db, userId, application.id, { resumeDraftId: draft.id, coverLetterId: letter.id });
   assert.ok(result.ok, result.ok ? "" : result.error);
 }

@@ -3,6 +3,7 @@ import type { Database } from "@/db";
 import { achievements, applications, careerImports, jobs, resumeDrafts, roles, snapshots, type ApplicationStatus } from "@/db/schema";
 import { addDays, daysBetween, isoDay, parseDay, startOfUtcMonth } from "@/lib/applications/dates";
 import { describeReadiness, draftReadiness } from "@/lib/applications/readiness";
+import { hasReadAGuide } from "@/lib/learn/progress";
 
 /** Closed: nothing more to do. */
 export const CLOSED_STATUSES: ApplicationStatus[] = ["rejected", "withdrawn"];
@@ -176,7 +177,8 @@ export type ChecklistStep = { key: string; label: string; description: string; d
 /** The getting-started path. Shown on the overview until every step is done. */
 export async function gettingStarted(db: Database, userId: string): Promise<{ steps: ChecklistStep[]; done: boolean }> {
   const n = (rows: Array<{ n: number }>) => Number(rows[0]?.n ?? 0);
-  const [imports, roleCount, verified, jobRows, draftRows, approved, snapshotCount, submittedRows] = await Promise.all([
+  const [readGuide, imports, roleCount, verified, jobRows, draftRows, approved, snapshotCount, submittedRows] = await Promise.all([
+    hasReadAGuide(db, userId),
     db.select({ n: count() }).from(careerImports).where(eq(careerImports.userId, userId)).then(n),
     db.select({ n: count() }).from(roles).where(eq(roles.userId, userId)).then(n),
     db.select({ n: count() }).from(achievements).where(and(eq(achievements.userId, userId), eq(achievements.factStatus, "verified"))).then(n),
@@ -195,6 +197,13 @@ export async function gettingStarted(db: Database, userId: string): Promise<{ st
   const latestDraft = draftRows[0];
 
   const steps: ChecklistStep[] = [
+    {
+      key: "learn",
+      label: "Read a field guide",
+      description: "Learn how the role you're targeting works: the workflow, the metrics, the tools and how interviews run.",
+      done: readGuide,
+      href: "/learn",
+    },
     {
       key: "import",
       label: "Import your resume",

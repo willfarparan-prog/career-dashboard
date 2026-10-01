@@ -392,3 +392,21 @@ export const discoverRuns = pgTable("discover_runs", {
   message: text("message"),
   createdAt: createdAt(),
 }, (t) => [index("discover_runs_user_source_idx").on(t.userId, t.source, t.createdAt)]);
+
+export const LEARNING_STATUSES = ["learning", "confident", "done"] as const;
+export type LearningStatus = (typeof LEARNING_STATUSES)[number];
+
+/**
+ * The owner's progress through the Learn hub. `key` names a piece of curated
+ * content (src/content/learn): `term:<glossary key>`, `resource:<resource key>`
+ * or `guide:<path>:<section>`. Content lives in code; only progress lives here.
+ */
+export const learningItems = pgTable("learning_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  key: text("key").notNull(),
+  status: text("status", { enum: LEARNING_STATUSES }).notNull().default("learning"),
+  note: text("note").notNull().default(""),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [uniqueIndex("learning_items_user_key_idx").on(t.userId, t.key)]);
