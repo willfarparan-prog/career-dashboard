@@ -26,6 +26,7 @@ import {
   todayIso,
 } from "@/lib/jobs/format";
 import { getJobDetail, type JobDetail, type JobRequirement } from "@/lib/jobs/jobs";
+import { practiceHref } from "@/lib/interview/links";
 import { listProgress, termKey, type Progress } from "@/lib/learn/progress";
 import { findTerms, glossaryTerm } from "@/lib/learn/terms";
 import { analyzeJobAction, deleteJobAction, matchEvidenceAction, overrideLabelAction, postingStatusAction, updateFitAction } from "../actions";
@@ -92,7 +93,7 @@ export default async function JobPage({ params, searchParams }: {
         <GapsCard requirements={detail.requirements} analyzed={Boolean(job.analyzedAt)} />
         <TermsCard postingText={job.postingText} progress={progress} />
         <RequirementsCard detail={detail} />
-        <ScreeningCard requirements={detail.requirements} />
+        <ScreeningCard requirements={detail.requirements} jobId={job.id} />
 
         <details className="rounded-xl border border-border bg-card p-4 md:p-5">
           <summary className="cursor-pointer text-base font-semibold">Full posting</summary>
@@ -102,6 +103,15 @@ export default async function JobPage({ params, searchParams }: {
 
       <div className="mt-6 space-y-4">
         <ApplicationSection jobId={id} />
+        <Card
+          title="Interview prep"
+          description="Likely questions for this posting, the stories that answer them, your rounds and thank-you notes."
+          actions={
+            <Link href={`/jobs/${id}/interview`} className={buttonClass(application && ["applied", "interview"].includes(application.status) ? "primary" : "secondary", "sm")}>
+              Open interview prep
+            </Link>
+          }
+        />
         <DraftsSection jobId={id} />
         <CoverLetterSection jobId={id} />
       </div>
@@ -423,14 +433,19 @@ function RequirementRow({ requirement: r, detail }: { requirement: JobRequiremen
   );
 }
 
-function ScreeningCard({ requirements }: { requirements: JobRequirement[] }) {
+function ScreeningCard({ requirements, jobId }: { requirements: JobRequirement[]; jobId: string }) {
   const questions = requirements.filter((r) => r.kind === "screening");
   if (!questions.length) return null;
   return (
     <Card title="Screening questions" description="The posting asks these. Prepare answers before you apply.">
       <ol className="list-decimal space-y-1.5 pl-5 text-sm">
         {questions.map((q) => (
-          <li key={q.id}>{q.text}</li>
+          <li key={q.id}>
+            {q.text}{" "}
+            <Link href={practiceHref(q.text, { jobId })} className="text-xs font-semibold text-primary hover:underline">
+              Practice
+            </Link>
+          </li>
         ))}
       </ol>
     </Card>

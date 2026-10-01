@@ -3,6 +3,7 @@ import type { Database } from "@/db";
 import { achievements, applications, careerImports, jobs, resumeDrafts, roles, snapshots, type ApplicationStatus } from "@/db/schema";
 import { addDays, daysBetween, isoDay, parseDay, startOfUtcMonth } from "@/lib/applications/dates";
 import { describeReadiness, draftReadiness } from "@/lib/applications/readiness";
+import { interviewActions } from "@/lib/interview/interviews";
 import { hasReadAGuide } from "@/lib/learn/progress";
 
 /** Closed: nothing more to do. */
@@ -22,11 +23,14 @@ export async function overviewStats(db: Database, userId: string, now = new Date
 }
 
 export type NextActionItem = {
-  applicationId: string;
+  key: string;
+  href: string;
+  /** Null for interview items on a job without an application row. */
+  applicationId: string | null;
   jobId: string;
   company: string;
   title: string;
-  status: ApplicationStatus;
+  status: ApplicationStatus | null;
   nextAction: string;
   /** "YYYY-MM-DD" */
   date: string;
@@ -34,7 +38,10 @@ export type NextActionItem = {
   daysLeft: number;
 };
 
-/** Open applications whose next action is overdue or due within `windowDays`, soonest first. */
+/**
+ * Open applications whose next action is overdue or due within `windowDays`,
+ * plus upcoming interview rounds and unsent thank-you notes, soonest first.
+ */
 export async function nextActions(db: Database, userId: string, now = new Date(), windowDays = 7): Promise<NextActionItem[]> {
   const today = isoDay(now);
   const until = addDays(today, windowDays);
@@ -48,6 +55,8 @@ export async function nextActions(db: Database, userId: string, now = new Date()
     const date = parseDay(application.nextActionDate);
     if (!date || date > until) continue;
     items.push({
+      key: `application:${application.id}`,
+      href: `/applications/${application.id}`,
       applicationId: application.id,
       jobId: application.jobId,
       company,
@@ -56,6 +65,21 @@ export async function nextActions(db: Database, userId: string, now = new Date()
       nextAction: application.nextAction,
       date,
       daysLeft: daysBetween(today, date),
+    });
+  }
+  for (const item of await interviewActions(db, userId, today, until)) {
+    if (item.status && CLOSED_STATUSES.includes(item.status)) continue;
+    items.push({
+      key: `interview:${item.interviewId}:${item.label}`,
+      href: `/jobs/${item.jobId}/interview`,
+      applicationId: null,
+      jobId: item.jobId,
+      company: item.company,
+      title: item.title,
+      status: item.status,
+      nextAction: item.label,
+      date: item.date,
+      daysLeft: item.daysLeft,
     });
   }
   return items.sort((a, b) => a.date.localeCompare(b.date) || a.company.localeCompare(b.company));

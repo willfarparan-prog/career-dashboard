@@ -235,7 +235,7 @@ export default async function Home() {
           <div className="min-w-0 space-y-3">
             <ListCard
               title="Next actions"
-              description="Overdue or due in the next 7 days."
+              description="Overdue or due in the next 7 days, including interviews and thank-you notes."
               empty={actions.length ? null : "Nothing due this week. Set a next action on any application to see it here."}
               action={
                 <Link href="/applications" className="text-xs font-semibold text-primary hover:underline">
@@ -245,8 +245,8 @@ export default async function Home() {
             >
               {actions.map((item) => (
                 <RowLink
-                  key={item.applicationId}
-                  href={`/applications/${item.applicationId}`}
+                  key={item.key}
+                  href={item.href}
                   aside={
                     <span className={cx("text-xs font-semibold", item.daysLeft < 0 ? "text-bad" : item.daysLeft === 0 ? "text-warn" : "text-muted-foreground")}>
                       {relativeDays(item.daysLeft)}
@@ -259,7 +259,7 @@ export default async function Home() {
                   </span>
                   <span className="flex min-w-0 items-center gap-2 pl-[18px] text-xs text-muted-foreground">
                     <span className="min-w-0 truncate">{[item.title, item.company].filter(Boolean).join(" · ") || "Untitled job"}</span>
-                    <StatusBadge status={item.status} />
+                    {item.status ? <StatusBadge status={item.status} /> : null}
                   </span>
                 </RowLink>
               ))}

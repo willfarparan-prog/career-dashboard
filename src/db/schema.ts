@@ -410,3 +410,101 @@ export const learningItems = pgTable("learning_items", {
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [uniqueIndex("learning_items_user_key_idx").on(t.userId, t.key)]);
+
+/**
+ * Interview stories, mostly STAR-shaped and usually built from an achievement.
+ * Like the rest of the library, Claude may draft one but only the owner saves it.
+ */
+export const STORY_FORMATS = ["star", "free"] as const;
+export type StoryFormat = (typeof STORY_FORMATS)[number];
+
+export const stories = pgTable("stories", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  achievementId: uuid("achievement_id").references(() => achievements.id, { onDelete: "set null" }),
+  title: text("title").notNull(),
+  format: text("format", { enum: STORY_FORMATS }).notNull().default("star"),
+  situation: text("situation").notNull().default(""),
+  task: text("task").notNull().default(""),
+  action: text("action").notNull().default(""),
+  result: text("result").notNull().default(""),
+  /** The whole answer, for "free" stories like "Tell me about yourself". */
+  body: text("body").notNull().default(""),
+  /** Keys from src/content/interview/competencies.ts. */
+  competencies: jsonb("competencies").$type<string[]>().notNull().default([]),
+  factStatus: text("fact_status", { enum: FACT_STATUSES }).notNull().default("needs_confirmation"),
+  sort: integer("sort").notNull().default(0),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [index("stories_user_idx").on(t.userId)]);
+
+export const INTERVIEW_STAGES = ["recruiter_screen", "hiring_manager", "panel", "presentation", "final", "other"] as const;
+export type InterviewStage = (typeof INTERVIEW_STAGES)[number];
+export const INTERVIEW_OUTCOMES = ["pending", "advanced", "rejected", "offer"] as const;
+export type InterviewOutcome = (typeof INTERVIEW_OUTCOMES)[number];
+
+/** One interview round for a job. */
+export const interviews = pgTable("interviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  jobId: uuid("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
+  stage: text("stage", { enum: INTERVIEW_STAGES }).notNull().default("recruiter_screen"),
+  /** "YYYY-MM-DD", or "" when not scheduled yet. */
+  date: text("date").notNull().default(""),
+  interviewers: text("interviewers").notNull().default(""),
+  notes: text("notes").notNull().default(""),
+  debrief: text("debrief").notNull().default(""),
+  thankYouSent: boolean("thank_you_sent").notNull().default(false),
+  outcome: text("outcome", { enum: INTERVIEW_OUTCOMES }).notNull().default("pending"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [index("interviews_job_idx").on(t.jobId), index("interviews_user_idx").on(t.userId)]);
+
+export type PrepQuestion = {
+  question: string;
+  /** Which part of the posting prompts it. */
+  why: string;
+  competency: string | null;
+  storyIds: string[];
+  /** How to answer honestly when it touches a gap. */
+  gapAdvice: string | null;
+};
+export type PrepContent = { likelyQuestions: PrepQuestion[]; questionsToAsk: string[]; researchChecklist: string[]; pivotAngle: string };
+
+/** Claude's prep pack for one job (regenerable), plus the owner's own company research. */
+export const interviewPreps = pgTable("interview_preps", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  jobId: uuid("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
+  content: jsonb("content").$type<PrepContent>(),
+  companyNotes: text("company_notes").notNull().default(""),
+  generatedAt: timestamp("generated_at", { withTimezone: true }),
+  model: text("model").notNull().default(""),
+  promptVersion: text("prompt_version").notNull().default(""),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [uniqueIndex("interview_preps_job_idx").on(t.jobId), index("interview_preps_user_idx").on(t.userId)]);
+
+export type PracticeRating = "strong" | "ok" | "weak";
+export type PracticeFeedback = {
+  star: { situation: boolean; task: boolean; action: boolean; result: boolean };
+  specificity: { rating: PracticeRating; note: string };
+  result: { rating: PracticeRating; note: string };
+  relevance: { rating: PracticeRating; note: string };
+  unsupportedClaims: string[];
+  rewriteTip: string;
+};
+
+/** A typed practice answer and Claude's feedback on it. */
+export const practiceAttempts = pgTable("practice_attempts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  jobId: uuid("job_id").references(() => jobs.id, { onDelete: "set null" }),
+  question: text("question").notNull(),
+  competency: text("competency").notNull().default(""),
+  answer: text("answer").notNull(),
+  feedback: jsonb("feedback").$type<PracticeFeedback>().notNull(),
+  model: text("model").notNull().default(""),
+  promptVersion: text("prompt_version").notNull().default(""),
+  createdAt: createdAt(),
+}, (t) => [index("practice_attempts_user_idx").on(t.userId, t.createdAt)]);

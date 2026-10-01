@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Briefcase, FileUp, GraduationCap, House, ListChecks, type LucideIcon, Radar, Settings, Trophy, UserRound } from "lucide-react";
+import { Activity, Briefcase, FileUp, GraduationCap, House, ListChecks, MessagesSquare, type LucideIcon, Radar, Settings, Trophy, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -16,6 +16,7 @@ export const SECTIONS: Section[] = [
   { href: "/discover", label: "Discover", icon: Radar, color: "#0d9dda", tab: true },
   { href: "/jobs", label: "Jobs", icon: Briefcase, color: "#f4a24b", tab: true },
   { href: "/applications", label: "Applications", icon: ListChecks, color: "#f88962", tab: true },
+  { href: "/interview", label: "Interview", icon: MessagesSquare, color: "#7f6df2", tab: true },
   { href: "/achievements", label: "Achievements", icon: Trophy, color: "#e9696e", tab: true },
   { href: "/profile", label: "Profile", icon: UserRound, color: "#9b8ce8", tab: true },
   { href: "/profile/import", label: "Import", icon: FileUp, color: "#a89b82", tab: true },

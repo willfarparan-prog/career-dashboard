@@ -11,7 +11,8 @@ A private, Claude-powered workspace for job applications. It is built on one rul
 4. **Export.** DOCX, a text-based PDF, or plain text. A cover letter can be drafted from the same approved facts.
 5. **Track** (`/applications`). Marking a job *applied* freezes the exact resume, cover letter and posting in insert-only snapshots, which a database trigger protects. Next actions, contacts and outcomes stay beside them.
 6. **Learn** (`/learn`). Field guides for each target path (workflow, metrics, tools, interview loop, and how coaching translates), a glossary with flashcards, and a gap roadmap that groups the gaps across your open jobs and links courses that cover them. The content is curated in `src/content/learn/`, not generated, and job pages flag the glossary terms each posting uses.
-7. **Claude activity** (`/activity`) logs every call's tokens and estimated cost. A daily budget caps spending.
+7. **Interview** (`/interview`, `/jobs/[id]/interview`). A STAR story bank (Claude can draft a story from an achievement; you edit before saving), competency coverage for your target roles, a question bank, and typed practice with feedback that flags claims your library doesn't back. Each job gets a prep pack (likely questions matched to your stories, honest framing for gaps, questions to ask, a research checklist), your own company notes, and its interview rounds. Upcoming rounds and unsent thank-you notes show on Home.
+8. **Claude activity** (`/activity`) logs every call's tokens and estimated cost. A daily budget caps spending.
 
 ## Stack
 

@@ -13,8 +13,11 @@ import {
   jobLeads,
   jobRequirements,
   jobSearches,
+  interviewPreps,
+  interviews,
   jobs,
   learningItems,
+  practiceAttempts,
   profiles,
   qualityFindings,
   resumeBullets,
@@ -22,6 +25,7 @@ import {
   roles,
   skills,
   snapshots,
+  stories,
 } from "@/db/schema";
 import { markApplied } from "@/lib/applications/mark-applied";
 import { exportUserData, purgeUserData } from "@/lib/settings/data";
@@ -59,6 +63,17 @@ async function seedEverything(userId: string) {
   await db.insert(jobLeads).values({ userId, source: "remotive", externalId: `lead-${userId}`, searchId: search.id, dedupeKey: "acme|csm", title: "CSM", company: "Acme", url: "https://example.com/jobs/1" });
   await db.insert(discoverRuns).values({ userId, source: "remotive", searchId: search.id, query: "customer success manager", status: "ok", requests: 1, found: 1, added: 1 });
   await db.insert(learningItems).values({ userId, key: "term:nrr", status: "confident" });
+  // Interview prep: a story, a round, a prep pack and a practice attempt.
+  await db.insert(stories).values({ userId, achievementId: achievement.id, title: "A story", action: "Did it" });
+  await db.insert(interviews).values({ userId, jobId: job.id, stage: "hiring_manager", date: "2026-10-02" });
+  await db.insert(interviewPreps).values({ userId, jobId: job.id, companyNotes: "Notes" });
+  await db.insert(practiceAttempts).values({
+    userId,
+    jobId: job.id,
+    question: "Q",
+    answer: "A",
+    feedback: { star: { situation: true, task: true, action: true, result: true }, specificity: { rating: "ok", note: "" }, result: { rating: "ok", note: "" }, relevance: { rating: "ok", note: "" }, unsupportedClaims: [], rewriteTip: "" },
+  });
   const result = await markApplied(db, userId, application.id, { resumeDraftId: draft.id, coverLetterId: letter.id });
   assert.ok(result.ok, result.ok ? "" : result.error);
 }
