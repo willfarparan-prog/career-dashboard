@@ -45,6 +45,7 @@ export function parseRemotive(body: unknown, spec: SearchSpec, now = new Date())
       salaryMin: min,
       salaryMax: max,
       salaryText,
+      salaryProvenance: min != null || max != null ? "disclosed" : "unknown",
       publisher: LABEL,
       url,
       applyOptions: [{ publisher: LABEL, url, isDirect: false }],

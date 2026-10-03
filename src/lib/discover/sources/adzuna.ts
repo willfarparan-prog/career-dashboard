@@ -67,6 +67,7 @@ export function parseAdzuna(body: unknown, spec: SearchSpec, now = new Date()): 
       salaryMin: min,
       salaryMax: max,
       salaryText: salary && predicted ? `~${salary} (Adzuna estimate)` : salary,
+      salaryProvenance: predicted ? "estimated" : min != null || max != null ? "disclosed" : "unknown",
       publisher: LABEL,
       url,
       applyOptions: [{ publisher: LABEL, url, isDirect: false }],

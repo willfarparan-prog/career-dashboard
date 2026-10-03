@@ -1,4 +1,4 @@
-import type { ApplyOption, LeadSource } from "@/db/schema";
+import type { ApplyOption, LeadSource, SalaryProvenance } from "@/db/schema";
 
 /** What a saved search asks every source for. */
 export type SearchSpec = {
@@ -20,6 +20,7 @@ export type NormalizedLead = {
   salaryMin: number | null;
   salaryMax: number | null;
   salaryText: string;
+  salaryProvenance?: SalaryProvenance;
   /** Where it was published: "LinkedIn", "Indeed", "Glassdoor" (JSearch) or the board's name. */
   publisher: string;
   /** Link to open: the official apply page when the source gives one. */

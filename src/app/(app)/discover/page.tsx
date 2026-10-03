@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Badge, ButtonLink, Card, EmptyState, Notice, PageHeader, buttonClass, cx } from "@/components/ui";
 import { getDatabase } from "@/db";
-import { LEAD_SOURCES, type LeadSource } from "@/db/schema";
+import { LEAD_SOURCES, type DiscoverMode, type LeadSource } from "@/db/schema";
 import { aiConfigured } from "@/lib/ai/run";
 import { requireViewer } from "@/lib/auth/owner";
 import { getProfile } from "@/lib/career/profile";
@@ -18,6 +18,13 @@ import { LeadRow } from "./lead-row";
 import { bookmarkletHref } from "./origin";
 import { SearchForm, type SourceOption } from "./search-form";
 import { SourceStrip } from "./source-strip";
+import { ExplorePanel } from "./explore-panel";
+import { explorationInputs, explorationFingerprint, getExploration, getFitReviews } from "@/lib/discover/exploration";
+import { PROMPT_VERSION as EXPLORE_VERSION } from "@/lib/ai/tasks/explore";
+import { PROMPT_VERSION as FIT_VERSION } from "@/lib/ai/tasks/discover-fit";
+import type { FitReview } from "@/lib/discover/explore-types";
+
+type ReviewViews = Record<string, { content: FitReview; stale: boolean }>;
 
 // "Refresh now" and "Save to pipeline" (with analysis) run as this page's server actions.
 export const maxDuration = 300;
@@ -36,12 +43,13 @@ function sourceOptions(): SourceOption[] {
   });
 }
 
-function RefreshButton({ searchId, label = "Refresh now", variant = "primary" }: { searchId?: string; label?: string; variant?: "primary" | "secondary" }) {
+function RefreshButton({ searchId, mode = "priority", label, variant = "primary" }: { searchId?: string; mode?: DiscoverMode; label?: string; variant?: "primary" | "secondary" }) {
   return (
     <ActionForm action={refreshAction} className="min-w-0 max-w-md">
+      <input type="hidden" name="mode" value={mode} />
       {searchId ? <input type="hidden" name="searchId" value={searchId} /> : null}
       <SubmitButton size={searchId ? "sm" : "md"} variant={variant} pending={searchId ? "Running…" : "Refreshing…"}>
-        {label}
+        {label ?? (mode === "explore" ? "Refresh Explore" : "Refresh now")}
       </SubmitButton>
     </ActionForm>
   );
@@ -53,20 +61,32 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
   if (!db) return <Notice tone="warn">The database isn&apos;t connected yet. Set DATABASE_URL and reload.</Notice>;
 
   const query = parseInboxQuery(params);
+  const mode = query.mode ?? "priority";
+  const filters = { mode, excluded: query.excluded, source: query.source ?? undefined, searchId: query.searchId ?? undefined, minScore: query.good ? GOOD_MATCH_SCORE : undefined };
   const now = new Date();
-  const [searches, leads, counts, statuses, profile, bookmarklet] = await Promise.all([
-    listSearches(db, userId),
+  const [searches, leads, counts, statuses, profile, bookmarklet, exploration, inputs, reviews, excludedLeads] = await Promise.all([
+    listSearches(db, userId, mode),
     listLeads(db, userId, {
+      ...filters,
       status: query.status,
       source: query.source ?? undefined,
       searchId: query.searchId ?? undefined,
       minScore: query.good ? GOOD_MATCH_SCORE : undefined,
     }),
-    leadCounts(db, userId),
+    leadCounts(db, userId, filters),
     sourceStatuses(db, userId, now),
     getProfile(db, userId),
     bookmarkletHref(),
+    mode === "explore" ? getExploration(db, userId) : null,
+    mode === "explore" ? explorationInputs(db, userId) : null,
+    mode === "explore" ? getFitReviews(db, userId) : [],
+    mode === "explore" ? listLeads(db, userId, { ...filters, status: query.status, excluded: true, limit: Infinity }) : [],
   ]);
+  const reviewViews: ReviewViews = {};
+  if (inputs) for (const lead of leads) {
+    const review = reviews.find((r) => r.leadId === lead.id);
+    if (review) reviewViews[lead.id] = { content: review.content, stale: review.inputFingerprint !== explorationFingerprint(inputs, FIT_VERSION, lead) };
+  }
   const ai = aiConfigured();
   const options = sourceOptions();
   const openNewSearch = params.form === "new" || !searches.length;
@@ -78,15 +98,24 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
         description="New postings from your saved searches, best matches first. Save the good ones to your pipeline, then apply on the original site."
         actions={
           <>
-            <ButtonLink href="/discover?form=new#new-search" variant="secondary">
+            <ButtonLink href={`${mode === "explore" ? "/discover?mode=explore&" : "/discover?"}form=new#new-search`} variant="secondary">
               New search
             </ButtonLink>
-            <RefreshButton />
+            <RefreshButton mode={mode} />
           </>
         }
       />
 
       <div className="space-y-3">
+        <nav aria-label="Discovery focus" className="flex flex-wrap gap-2">
+          {(["priority", "explore"] as const).map((value) => <Link key={value} href={inboxHref(query, { mode: value, searchId: null, excluded: false })} aria-current={mode === value ? "page" : undefined} className={buttonClass(mode === value ? "primary" : "secondary")}>
+            {value === "priority" ? "Priority paths" : "Explore other careers"}
+          </Link>)}
+        </nav>
+        {mode === "explore" && inputs ? <ExplorePanel directions={exploration?.directions ?? []}
+          stale={Boolean(exploration && exploration.inputFingerprint !== explorationFingerprint(inputs, EXPLORE_VERSION))}
+          minimum={profile?.compMin ?? null} location={profile?.targetLocations.find((l) => !/remote/i.test(l)) ?? ""}
+          sources={options} ai={ai} hasExperience={Boolean(inputs.context.roleByAlias.size || inputs.context.shared.length)} /> : null}
         <SourceStrip statuses={statuses} now={now} />
 
         <div className="grid gap-3 lg:grid-cols-3">
@@ -100,20 +129,22 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
               registeredSources={statuses.length}
               now={now}
               ai={ai}
+              reviews={reviewViews}
+              excludedCount={excludedLeads.length}
             />
           </div>
 
           <div className="min-w-0 space-y-3">
-            <Card title="Saved searches" description="Each search asks the sources you pick for recent postings. Refresh now runs every active search.">
+            <Card title={mode === "explore" ? "Explore searches" : "Priority searches"} description={mode === "explore" ? "Refresh Explore runs active searches in this view only. These searches do not run daily." : "Refresh now and daily refresh run your active priority searches."}>
               {searches.length ? (
                 <ul className="-my-1 divide-y divide-border">
                   {searches.map((search) => (
                     <SearchRow key={search.id} search={search} options={options} now={now} />
                   ))}
                 </ul>
-              ) : (
+              ) : mode === "priority" ? (
                 <Suggestions suggestions={suggestedSearches(profile?.targetRoles ?? [], profile?.targetLocations ?? [])} />
-              )}
+              ) : <p className="text-sm text-muted-foreground">Choose a suggested career direction above or add your own alternative search.</p>}
 
               <details id="new-search" open={openNewSearch} className="group mt-3 border-t border-border pt-3">
                 <summary className={cx(buttonClass("secondary", "sm"), "cursor-pointer list-none [&::-webkit-details-marker]:hidden")}>
@@ -121,7 +152,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
                   <span className="hidden group-open:inline">Hide new search form</span>
                 </summary>
                 <div className="mt-3">
-                  <SearchForm sources={options} />
+                  <SearchForm sources={options} mode={mode} defaults={{ location: profile?.targetLocations.find((l) => !/remote/i.test(l)) ?? "" }} />
                 </div>
               </details>
             </Card>
@@ -168,7 +199,7 @@ function SearchRow({ search, options, now }: { search: JobSearch; options: Sourc
         {maxAgeLabel(search.maxAgeDays)} · {search.lastRunAt ? `Last run ${timeAgo(search.lastRunAt, now)}` : "Not run yet"}
       </p>
       <div className="mt-2 flex flex-wrap items-start gap-2">
-        <RefreshButton searchId={search.id} label="Run now" variant="secondary" />
+        <RefreshButton searchId={search.id} mode={search.mode} label="Run now" variant="secondary" />
         <ActionForm action={setSearchActiveAction} className="min-w-0">
           <input type="hidden" name="searchId" value={search.id} />
           <input type="hidden" name="active" value={search.active ? "false" : "true"} />
@@ -223,7 +254,9 @@ const TABS: Array<{ status: InboxStatus; label: string }> = [
   { status: "all", label: "All" },
 ];
 
-function Inbox({ query, leads, counts, searches, configuredSources, registeredSources, now, ai }: {
+function Inbox({ query, leads, counts, searches, configuredSources, registeredSources, now, ai, reviews, excludedCount }: {
+  reviews: ReviewViews;
+  excludedCount: number;
   query: InboxQuery;
   leads: LeadListItem[];
   counts: Record<"new" | "saved" | "dismissed", number>;
@@ -234,8 +267,8 @@ function Inbox({ query, leads, counts, searches, configuredSources, registeredSo
   ai: boolean;
 }) {
   const total = counts.new + counts.saved + counts.dismissed;
-  const filtered = Boolean(query.source || query.searchId || query.good);
-  const clearHref = inboxHref(query, { source: null, searchId: null, good: false });
+  const filtered = Boolean(query.source || query.searchId || query.good || query.excluded);
+  const clearHref = inboxHref(query, { source: null, searchId: null, good: false, excluded: false });
 
   return (
     <Card
@@ -263,6 +296,8 @@ function Inbox({ query, leads, counts, searches, configuredSources, registeredSo
       </nav>
 
       <Form action="/discover" className="mb-3 flex flex-wrap items-end gap-2">
+        <input type="hidden" name="mode" value={query.mode ?? "priority"} />
+        {query.excluded ? <input type="hidden" name="excluded" value="1" /> : null}
         {query.status !== "new" ? <input type="hidden" name="status" value={query.status} /> : null}
         <label className="field min-w-0">
           <span>Source</span>
@@ -302,6 +337,12 @@ function Inbox({ query, leads, counts, searches, configuredSources, registeredSo
         ) : null}
       </Form>
 
+      {query.mode === "explore" ? <p className="mb-3 text-xs text-muted-foreground">
+        {excludedCount} excluded for clearly low disclosed pay or unsuitable work type. {" "}
+        <Link className="text-primary underline" href={inboxHref(query, { excluded: !query.excluded })}>{query.excluded ? "Back to eligible results" : "Inspect excluded results"}</Link>
+        {query.excluded ? " · Showing excluded results only." : " · Unconfirmed pay and duties remain visible for you to check."}
+      </p> : null}
+
       {leads.length ? (
         <>
           <div className="mb-1 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
@@ -332,6 +373,8 @@ function Inbox({ query, leads, counts, searches, configuredSources, registeredSo
                   now={now}
                   ai={ai}
                   showStatus={query.status === "all"}
+                  explore={query.mode === "explore"}
+                  review={reviews[lead.id]}
                 />
               );
             })}
@@ -376,12 +419,14 @@ function InboxEmpty({ query, filtered, clearHref, total, searches, configuredSou
     body = "Postings you dismiss land here, so you can bring them back.";
   } else if (total > 0 && query.status === "new") {
     title = "You're all caught up";
-    body = "No new postings. Refresh now checks for more; saved ones are under Saved.";
-    action = <RefreshButton />;
+    body = `No new postings. ${query.mode === "explore" ? "Refresh Explore" : "Refresh now"} checks for more; saved ones are under Saved.`;
+    action = <RefreshButton mode={query.mode} />;
   } else if (!searches) {
     title = "No postings yet";
-    body = "Add a saved search (or the suggested ones), then press Refresh now. You can also send any job page here with the bookmark.";
-    action = <ButtonLink href="/discover?form=new#new-search">New search</ButtonLink>;
+    body = query.mode === "explore"
+      ? "Add an Explore search, then press Refresh Explore. You can also send any job page here with the bookmark."
+      : "Add a saved search (or the suggested ones), then press Refresh now. You can also send any job page here with the bookmark.";
+    action = <ButtonLink href={query.mode === "explore" ? "/discover?mode=explore&form=new#new-search" : "/discover?form=new#new-search"}>New search</ButtonLink>;
   } else if (!registeredSources) {
     title = "Job sources aren't connected yet";
     body = (
@@ -395,11 +440,11 @@ function InboxEmpty({ query, filtered, clearHref, total, searches, configuredSou
     );
   } else if (!configuredSources) {
     title = "Set up a source first";
-    body = "None of the sources above are set up yet. Add the environment variables they list in Vercel, redeploy, then press Refresh now.";
+    body = `None of the sources above are set up yet. Add the environment variables they list in Vercel, redeploy, then press ${query.mode === "explore" ? "Refresh Explore" : "Refresh now"}.`;
   } else {
     title = "No postings yet";
-    body = `Press Refresh now to check your ${searches} saved search${searches === 1 ? "" : "es"}.`;
-    action = <RefreshButton />;
+    body = `Press ${query.mode === "explore" ? "Refresh Explore" : "Refresh now"} to check your ${searches} saved search${searches === 1 ? "" : "es"}.`;
+    action = <RefreshButton mode={query.mode} />;
   }
   return (
     <EmptyState title={title} action={action}>

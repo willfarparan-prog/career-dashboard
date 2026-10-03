@@ -1,6 +1,6 @@
 import { and, asc, eq, gte, inArray, lt, lte, sum } from "drizzle-orm";
 import type { Database } from "@/db";
-import { discoverRuns, jobLeads, jobSearches, LEAD_SOURCES, profiles, type CareerPath, type LeadSource, type ScoreReason } from "@/db/schema";
+import { discoverRuns, jobLeads, jobSearches, leadSearchMatches, LEAD_SOURCES, profiles, type CareerPath, type DiscoverMode, type LeadSource, type ScoreReason } from "@/db/schema";
 import { dedupeKey } from "./dedupe";
 import { scoreLead, type ScoreContext } from "./score";
 import { getSource, SOURCES } from "./sources";
@@ -22,7 +22,7 @@ import type { FetchLike, NormalizedLead, RefreshSummary, SearchSpec, SourceAdapt
  * source's existing lead for the same job was seen in the same run.
  */
 
-export type RefreshOptions = { searchId?: string; force?: boolean; now?: Date; fetchImpl?: FetchLike };
+export type RefreshOptions = { searchId?: string; mode?: DiscoverMode; force?: boolean; now?: Date; fetchImpl?: FetchLike };
 
 type Search = typeof jobSearches.$inferSelect;
 
@@ -129,7 +129,7 @@ function searchSpec(search: Search): SearchSpec {
 function scoreContext(search: Search, profile: Profile): ScoreContext {
   const place = search.location.trim();
   const targetLocations = place && !/^(remote|anywhere)$/i.test(place) ? [...profile.targetLocations, place] : profile.targetLocations;
-  return { query: search.query, targetLocations, remoteOk: profile.remoteOk || search.remoteOnly, compMin: profile.compMin, targetRoles: profile.targetRoles };
+  return { query: search.query, targetLocations, remoteOk: profile.remoteOk || search.remoteOnly, compMin: profile.compMin, targetRoles: profile.targetRoles, mode: search.mode, directionTerms: search.directionTerms };
 }
 
 /** Longer description wins; ties go to the source listed first. */
@@ -143,7 +143,7 @@ export async function refreshSearches(db: Database, userId: string, options: Ref
   const searches = await db
     .select()
     .from(jobSearches)
-    .where(options.searchId ? and(eq(jobSearches.userId, userId), eq(jobSearches.id, options.searchId)) : and(eq(jobSearches.userId, userId), eq(jobSearches.active, true)))
+    .where(and(eq(jobSearches.userId, userId), eq(jobSearches.mode, options.mode ?? "priority"), options.searchId ? eq(jobSearches.id, options.searchId) : eq(jobSearches.active, true)))
     .orderBy(asc(jobSearches.createdAt));
   if (!searches.length) return { runs: [], added: 0, found: 0 };
 
@@ -171,6 +171,8 @@ export async function refreshSearches(db: Database, userId: string, options: Ref
   const claimed = new Map<string, Set<LeadSource>>();
   /** source|externalId handled this run (two searches can return the same posting). */
   const handled = new Set<string>();
+  // Capture every match before deduplication (including a second search for one source id).
+  const observed = new Map<string, Map<string, Search>>();
   const queryBySearch = new Map(searches.map((s) => [s.id, s.query]));
 
   async function record(state: Omit<RunState, "runId">): Promise<RunState> {
@@ -230,6 +232,10 @@ export async function refreshSearches(db: Database, userId: string, options: Ref
     const queued: Array<Omit<Candidate, "run">> = [];
     const seenKeys: string[] = [];
     for (const lead of fresh.values()) {
+      const observedKey = dedupeKey(lead.company, lead.title);
+      const matches = observed.get(observedKey) ?? new Map<string, Search>();
+      matches.set(search.id, search);
+      observed.set(observedKey, matches);
       const handle = idKey(adapter.id, lead.externalId);
       if (handled.has(handle)) continue;
       handled.add(handle);
@@ -253,13 +259,13 @@ export async function refreshSearches(db: Database, userId: string, options: Ref
           salaryMin: lead.salaryMin,
           salaryMax: lead.salaryMax,
           salaryText: lead.salaryText,
+          salaryProvenance: lead.salaryProvenance ?? "unknown",
           publisher: lead.publisher,
           url: lead.url,
           applyOptions: lead.applyOptions,
           description: lead.description,
           postedAt: lead.postedAt,
-          score,
-          scoreReasons: reasons,
+          ...(search.mode === "priority" ? { score, scoreReasons: reasons } : {}),
           lastSeenAt: now,
         })
         .where(and(eq(jobLeads.id, row.id), eq(jobLeads.userId, userId)));
@@ -333,8 +339,14 @@ export async function refreshSearches(db: Database, userId: string, options: Ref
   if (failure) throw failure.reason;
 
   // One new lead per job across sources, unless another source's stored lead for it was seen.
+  const observedKeys = [...observed.keys()];
+  const stored = observedKeys.length ? await db.select().from(jobLeads)
+    .where(and(eq(jobLeads.userId, userId), inArray(jobLeads.dedupeKey, observedKeys)))
+    .orderBy(asc(jobLeads.firstSeenAt), asc(jobLeads.id)) : [];
+  const storedKeys = new Set(stored.map((lead) => lead.dedupeKey));
   const winners: Candidate[] = [];
   for (const [key, list] of candidates) {
+    if (storedKeys.has(key)) continue;
     const owners = claimed.get(key);
     for (const candidate of list) {
       if (owners && [...owners].some((source) => source !== candidate.lead.source)) continue;
@@ -362,6 +374,7 @@ export async function refreshSearches(db: Database, userId: string, options: Ref
           salaryMin: lead.salaryMin,
           salaryMax: lead.salaryMax,
           salaryText: lead.salaryText,
+          salaryProvenance: lead.salaryProvenance ?? "unknown",
           publisher: lead.publisher,
           url: lead.url,
           applyOptions: lead.applyOptions,
@@ -379,6 +392,28 @@ export async function refreshSearches(db: Database, userId: string, options: Ref
     for (const row of inserted) {
       const run = runByHandle.get(idKey(row.source, row.externalId));
       if (run) addedByRun.set(run, (addedByRun.get(run) ?? 0) + 1);
+    }
+  }
+
+  const allLeads = observedKeys.length ? await db.select().from(jobLeads)
+    .where(and(eq(jobLeads.userId, userId), inArray(jobLeads.dedupeKey, observedKeys)))
+    .orderBy(asc(jobLeads.firstSeenAt), asc(jobLeads.id)) : [];
+  const canonical = new Map<string, typeof jobLeads.$inferSelect>();
+  for (const lead of allLeads) if (!canonical.has(lead.dedupeKey)) canonical.set(lead.dedupeKey, lead);
+  for (const [key, matches] of observed) {
+    const lead = canonical.get(key);
+    if (!lead) continue;
+    // Supports old/unassigned leads added after the migration as well.
+    if (stored.some((row) => row.id === lead.id)) {
+      const [membership] = await db.select({ id: leadSearchMatches.id }).from(leadSearchMatches)
+        .where(and(eq(leadSearchMatches.userId, userId), eq(leadSearchMatches.leadId, lead.id))).limit(1);
+      if (!membership) await db.insert(leadSearchMatches).values({ userId, leadId: lead.id, searchKey: "legacy", mode: "priority", query: lead.title, score: lead.score, scoreReasons: lead.scoreReasons }).onConflictDoNothing();
+    }
+    for (const search of matches.values()) {
+      const ranked = scoreLead(lead, scoreContext(search, profile), now);
+      const values = { searchId: search.id, mode: search.mode, query: search.query, directionTerms: search.directionTerms, score: ranked.score, scoreReasons: ranked.reasons };
+      await db.insert(leadSearchMatches).values({ userId, leadId: lead.id, searchKey: search.id, ...values })
+        .onConflictDoUpdate({ target: [leadSearchMatches.userId, leadSearchMatches.leadId, leadSearchMatches.searchKey], set: values });
     }
   }
 
@@ -402,12 +437,12 @@ export async function refreshSearches(db: Database, userId: string, options: Ref
 export type RefreshAllSummary = RefreshSummary & { users: number; failedUsers: number };
 
 /** The daily cron: every user with an active search, one after another (quotas are shared). */
-export async function refreshAllUsers(db: Database, options: Omit<RefreshOptions, "searchId"> = {}): Promise<RefreshAllSummary> {
-  const users = await db.selectDistinct({ userId: jobSearches.userId }).from(jobSearches).where(eq(jobSearches.active, true));
+export async function refreshAllUsers(db: Database, options: Omit<RefreshOptions, "searchId" | "mode"> = {}): Promise<RefreshAllSummary> {
+  const users = await db.selectDistinct({ userId: jobSearches.userId }).from(jobSearches).where(and(eq(jobSearches.active, true), eq(jobSearches.mode, "priority")));
   const summary: RefreshAllSummary = { runs: [], added: 0, found: 0, users: users.length, failedUsers: 0 };
   for (const { userId } of users) {
     try {
-      const result = await refreshSearches(db, userId, options);
+      const result = await refreshSearches(db, userId, { ...options, mode: "priority" });
       summary.runs.push(...result.runs);
       summary.added += result.added;
       summary.found += result.found;

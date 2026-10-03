@@ -3,7 +3,9 @@ import Link from "next/link";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Badge, ButtonLink, buttonClass, cx } from "@/components/ui";
 import type { LeadListItem } from "@/lib/discover/leads";
-import { saveLeadAction, setLeadStatusAction } from "./actions";
+import { checkFitAction, saveLeadAction, setLeadStatusAction } from "./actions";
+import { FitReviewDetails } from "./explore-panel";
+import type { FitReview } from "@/lib/discover/explore-types";
 import { placeLabel, previewText, safeHref, salaryLabel, scoreTone, timeAgo } from "./format";
 
 const CHIP: Record<ReturnType<typeof scoreTone>, string> = {
@@ -26,7 +28,9 @@ const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0
 const points = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : "0");
 
 /** One posting in the inbox: what it is, why it scored, and what to do with it. */
-export function LeadRow({ lead, sourceLabel, attribution, now, ai, showStatus }: {
+export function LeadRow({ lead, sourceLabel, attribution, now, ai, showStatus, explore = false, review }: {
+  explore?: boolean;
+  review?: { content: FitReview; stale: boolean };
   lead: LeadListItem;
   sourceLabel: string;
   attribution: { text: string; href: string } | null;
@@ -72,6 +76,7 @@ export function LeadRow({ lead, sourceLabel, attribution, now, ai, showStatus }:
 
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {salary ? <span className="min-w-0 text-xs font-semibold break-words">{salary}</span> : null}
+            {lead.eligibility ? <><Badge tone={lead.eligibility.excluded ? "warn" : "neutral"}>{lead.eligibility.pay}</Badge><Badge>{lead.eligibility.work}</Badge></> : null}
             <Badge tone="info" title={`Found by ${sourceLabel}`}>
               via {clip(lead.publisher || sourceLabel, 32)}
             </Badge>
@@ -137,6 +142,10 @@ export function LeadRow({ lead, sourceLabel, attribution, now, ai, showStatus }:
           </div>
 
           <div className="mt-2 flex flex-wrap items-start gap-2">
+            {explore && ai ? <ActionForm action={checkFitAction}>
+              <input type="hidden" name="leadId" value={lead.id} />
+              <SubmitButton size="sm" variant="secondary" pending="Checking your fit…">{review ? "Check my fit again" : "Check my fit"}</SubmitButton>
+            </ActionForm> : null}
             {lead.jobId ? (
               <ButtonLink href={`/jobs/${lead.jobId}`} size="sm">
                 Open in pipeline
@@ -173,6 +182,7 @@ export function LeadRow({ lead, sourceLabel, attribution, now, ai, showStatus }:
               </ActionForm>
             ) : null}
           </div>
+          {review ? <FitReviewDetails review={review.content} stale={review.stale} /> : null}
         </div>
       </article>
     </li>

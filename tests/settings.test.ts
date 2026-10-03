@@ -26,7 +26,11 @@ import {
   skills,
   snapshots,
   stories,
+  careerExplorations,
+  leadFitReviews,
+  leadSearchMatches,
 } from "@/db/schema";
+import { EXPLORE_PREFERENCES } from "@/lib/discover/explore-types";
 import { markApplied } from "@/lib/applications/mark-applied";
 import { exportUserData, purgeUserData } from "@/lib/settings/data";
 import { clearImportText, countStoredImportText, getPrivacySettings, updatePrivacySettings } from "@/lib/settings/privacy";
@@ -60,7 +64,13 @@ async function seedEverything(userId: string) {
   await db.insert(aiRuns).values({ userId, task: "analyze", model: "fake", promptVersion: "analyze@1", status: "ok", costUsd: 0.01 });
   // Discover: a saved search, a posting it found, and the fetch that found it.
   const [search] = await db.insert(jobSearches).values({ userId, name: "CSM", query: "customer success manager" }).returning();
-  await db.insert(jobLeads).values({ userId, source: "remotive", externalId: `lead-${userId}`, searchId: search.id, dedupeKey: "acme|csm", title: "CSM", company: "Acme", url: "https://example.com/jobs/1" });
+  const [lead] = await db.insert(jobLeads).values({ userId, source: "remotive", externalId: `lead-${userId}`, searchId: search.id, dedupeKey: "acme|csm", title: "CSM", company: "Acme", url: "https://example.com/jobs/1" }).returning();
+  await db.insert(leadSearchMatches).values({ userId, leadId: lead.id, searchId: search.id, searchKey: search.id, mode: "priority", query: search.query, score: 60 });
+  await db.insert(careerExplorations).values({ userId, preferences: EXPLORE_PREFERENCES, inputFingerprint: "x", model: "fake", promptVersion: "explore@1" });
+  await db.insert(leadFitReviews).values({ userId, leadId: lead.id, inputFingerprint: "x", model: "fake", promptVersion: "discover-fit@1", content: {
+    summary: "Review", strengths: [], gaps: [], preparation: "Unknown", trainingMonths: null,
+    workType: { assessment: "unknown", explanation: "Unknown", postingQuote: "" }, growthSignals: [], careerPossibilities: "Unknown", unknowns: [],
+  } });
   await db.insert(discoverRuns).values({ userId, source: "remotive", searchId: search.id, query: "customer success manager", status: "ok", requests: 1, found: 1, added: 1 });
   await db.insert(learningItems).values({ userId, key: "term:nrr", status: "confident" });
   // Interview prep: a story, a round, a prep pack and a practice attempt.

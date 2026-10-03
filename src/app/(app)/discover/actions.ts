@@ -7,6 +7,8 @@ import type { LeadSource } from "@/db/schema";
 import { fail, field, ok, type ActionResult } from "@/lib/action-result";
 import { aiConfigured, aiErrorMessage } from "@/lib/ai/run";
 import { analyzeJob } from "@/lib/ai/tasks/analyze";
+import { suggestDirections } from "@/lib/ai/tasks/explore";
+import { reviewDiscoverFit } from "@/lib/ai/tasks/discover-fit";
 import { requireOwnerId } from "@/lib/auth/owner";
 import { getProfile } from "@/lib/career/profile";
 import { dismissLeads, getLead, saveLeadToPipeline, setLeadStatus } from "@/lib/discover/leads";
@@ -44,7 +46,7 @@ export async function refreshAction(_state: ActionResult | null, formData: FormD
   const searchId = idField(formData, "searchId");
   if (raw && !searchId) return fail("That search wasn't found.");
   try {
-    const summary = await refreshSearches(db, userId, { force: true, searchId: searchId ?? undefined });
+    const summary = await refreshSearches(db, userId, { force: true, searchId: searchId ?? undefined, mode: field(formData, "mode") === "explore" ? "explore" : "priority" });
     refresh();
     return ok(refreshMessage(summary, labelOf));
   } catch (error) {
@@ -113,7 +115,7 @@ export async function addSuggestedSearchesAction(): Promise<ActionResult> {
   const userId = await requireOwnerId();
   const db = requireDatabase();
   try {
-    const [profile, existing] = await Promise.all([getProfile(db, userId), listSearches(db, userId)]);
+    const [profile, existing] = await Promise.all([getProfile(db, userId), listSearches(db, userId, "priority")]);
     const have = new Set(existing.map((s) => `${s.query.toLowerCase()}|${s.location.toLowerCase()}`));
     const toAdd = suggestedSearches(profile?.targetRoles ?? [], profile?.targetLocations ?? []).filter(
       (s) => !have.has(`${s.query.toLowerCase()}|${(s.location ?? "").toLowerCase()}`),
@@ -199,4 +201,26 @@ export async function dismissLeadsAction(_state: ActionResult | null, formData: 
   } catch (error) {
     return fail(aiErrorMessage(error));
   }
+}
+
+export async function suggestDirectionsAction(): Promise<ActionResult> {
+  const userId = await requireOwnerId();
+  const db = requireDatabase();
+  try {
+    const directions = await suggestDirections(db, userId);
+    refresh();
+    return ok(`Suggested ${directions.length} direction${directions.length === 1 ? "" : "s"}. Review a search before adding it.`);
+  } catch (error) { return fail(aiErrorMessage(error)); }
+}
+
+export async function checkFitAction(_state: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const userId = await requireOwnerId();
+  const db = requireDatabase();
+  const id = idField(formData, "leadId");
+  if (!id) return fail("Posting not found.");
+  try {
+    await reviewDiscoverFit(db, userId, id);
+    refresh();
+    return ok("Fit review ready. Expand Your fit review below.");
+  } catch (error) { return fail(aiErrorMessage(error)); }
 }
