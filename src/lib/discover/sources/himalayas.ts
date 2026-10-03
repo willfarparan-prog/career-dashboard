@@ -65,6 +65,7 @@ export function parseHimalayas(body: unknown, spec: SearchSpec, now = new Date()
       salaryMin: isUsd ? annualize(min, "year") : null,
       salaryMax: isUsd ? annualize(max, "year") : null,
       salaryText: formatSalary(min, max, "year", currency),
+      salaryProvenance: isUsd && (min != null || max != null) ? "disclosed" : "unknown",
       publisher: LABEL,
       url,
       applyOptions: [{ publisher: LABEL, url, isDirect: false }],

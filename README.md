@@ -14,6 +14,8 @@ A private, Claude-powered workspace for job applications. It is built on one rul
 7. **Interview** (`/interview`, `/jobs/[id]/interview`). A STAR story bank (Claude can draft a story from an achievement; you edit before saving), competency coverage for your target roles, a question bank, and typed practice with feedback that flags claims your library doesn't back. Each job gets a prep pack (likely questions matched to your stories, honest framing for gaps, questions to ask, a research checklist), your own company notes, and its interview rounds. Upcoming rounds and unsent thank-you notes show on Home.
 8. **Claude activity** (`/activity`) logs every call's tokens and estimated cost. A daily budget caps spending.
 
+Discover also has **Priority paths** (the existing four-path searches) and **Explore other careers**. Explore suggests desk-based alternatives from the career library, lets you review each suggested search before adding it, and refreshes those searches only when you ask. Pay labels distinguish disclosed, estimated and unknown figures; an on-request fit review cites library evidence and posting excerpts. The daily cron continues to refresh Priority paths only.
+
 ## Stack
 
 Next.js 16 on Vercel · Neon Postgres and Neon Auth · Drizzle · Anthropic API (`@anthropic-ai/sdk`, structured outputs, server-side only) · Tailwind v4.

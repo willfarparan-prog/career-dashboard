@@ -1,12 +1,14 @@
-import { and, count, desc, eq, gte, inArray, sum } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, sum } from "drizzle-orm";
 import type { Database } from "@/db";
-import { discoverRuns, jobLeads, jobSearches, jobs, type LeadSource, type LeadStatus } from "@/db/schema";
+import { discoverRuns, jobLeads, jobSearches, leadSearchMatches, profiles, jobs, type DiscoverMode, type LeadSource, type LeadStatus } from "@/db/schema";
 import { createJob } from "@/lib/jobs/jobs";
 import { dedupeKey } from "./dedupe";
 import { SOURCES } from "./sources";
+import { exploreEligibility } from "./eligibility";
+import { scoreLead } from "./score";
 
 export type JobLead = typeof jobLeads.$inferSelect;
-export type LeadListItem = JobLead & { searchName: string | null; inPipeline: boolean };
+export type LeadListItem = JobLead & { searchName: string | null; inPipeline: boolean; eligibility?: ReturnType<typeof exploreEligibility> };
 
 export class LeadError extends Error {
   constructor(message: string) {
@@ -16,6 +18,8 @@ export class LeadError extends Error {
 }
 
 export type LeadFilter = {
+  mode?: DiscoverMode;
+  excluded?: boolean;
   status?: LeadStatus | "all";
   source?: LeadSource;
   searchId?: string;
@@ -34,19 +38,36 @@ export async function listLeads(db: Database, userId: string, filter: LeadFilter
   const status = filter.status ?? "new";
   if (status !== "all") conditions.push(eq(jobLeads.status, status));
   if (filter.source) conditions.push(eq(jobLeads.source, filter.source));
-  if (filter.searchId) conditions.push(eq(jobLeads.searchId, filter.searchId));
-  if (filter.minScore) conditions.push(gte(jobLeads.score, filter.minScore));
-  const [rows, keys] = await Promise.all([
+  const [rows, keys, profileRows] = await Promise.all([
     db
-      .select({ lead: jobLeads, searchName: jobSearches.name })
+      .select({ lead: jobLeads, match: leadSearchMatches, searchName: jobSearches.name, searchLocation: jobSearches.location, remoteOnly: jobSearches.remoteOnly })
       .from(jobLeads)
-      .leftJoin(jobSearches, eq(jobSearches.id, jobLeads.searchId))
+      .leftJoin(leadSearchMatches, and(eq(leadSearchMatches.leadId, jobLeads.id), eq(leadSearchMatches.userId, userId)))
+      .leftJoin(jobSearches, and(eq(jobSearches.id, leadSearchMatches.searchId), eq(jobSearches.userId, userId)))
       .where(and(...conditions))
-      .orderBy(desc(jobLeads.score), desc(jobLeads.postedAt), desc(jobLeads.firstSeenAt))
-      .limit(filter.limit ?? 200),
+      .orderBy(desc(jobLeads.score), desc(jobLeads.postedAt), desc(jobLeads.firstSeenAt)),
     pipelineKeys(db, userId),
+    db.select().from(profiles).where(eq(profiles.userId, userId)),
   ]);
-  return rows.map(({ lead, searchName }) => ({ ...lead, searchName, inPipeline: Boolean(lead.jobId) || keys.has(lead.dedupeKey) }));
+  const profile = profileRows[0];
+  const mode = filter.mode ?? "priority";
+  const best = new Map<string, LeadListItem>();
+  for (const { lead, match, searchName, searchLocation, remoteOnly } of rows) {
+    if ((match?.mode ?? "priority") !== mode) continue;
+    if (filter.searchId && (match?.searchId ?? lead.searchId) !== filter.searchId) continue;
+    const ranked = mode === "explore" ? scoreLead(lead, {
+      query: match?.query ?? lead.title, directionTerms: match?.directionTerms ?? [], mode,
+      targetLocations: [...(profile?.targetLocations ?? []), ...(searchLocation ? [searchLocation] : [])],
+      remoteOk: Boolean(remoteOnly || (profile?.remoteOk ?? true)), compMin: profile?.compMin ?? null, targetRoles: [],
+    }) : { score: match?.score ?? lead.score, reasons: match?.scoreReasons ?? lead.scoreReasons };
+    if (filter.minScore && ranked.score < filter.minScore) continue;
+    const eligibility = mode === "explore" ? exploreEligibility(lead, profile?.compMin ?? null) : undefined;
+    if (eligibility && eligibility.excluded !== Boolean(filter.excluded)) continue;
+    const item = { ...lead, score: ranked.score, scoreReasons: ranked.reasons, searchName, eligibility, inPipeline: Boolean(lead.jobId) || keys.has(lead.dedupeKey) };
+    const previous = best.get(lead.id);
+    if (!previous || item.score > previous.score) best.set(lead.id, item);
+  }
+  return [...best.values()].sort((a, b) => b.score - a.score || (b.postedAt?.getTime() ?? 0) - (a.postedAt?.getTime() ?? 0) || b.firstSeenAt.getTime() - a.firstSeenAt.getTime()).slice(0, filter.limit ?? 200);
 }
 
 export async function getLead(db: Database, userId: string, leadId: string): Promise<JobLead | null> {
@@ -54,10 +75,10 @@ export async function getLead(db: Database, userId: string, leadId: string): Pro
   return row ?? null;
 }
 
-export async function leadCounts(db: Database, userId: string): Promise<Record<LeadStatus, number>> {
-  const rows = await db.select({ status: jobLeads.status, n: count() }).from(jobLeads).where(eq(jobLeads.userId, userId)).groupBy(jobLeads.status);
+export async function leadCounts(db: Database, userId: string, filter: Omit<LeadFilter, "status" | "limit"> = {}): Promise<Record<LeadStatus, number>> {
+  const rows = await listLeads(db, userId, { ...filter, status: "all", limit: Infinity });
   const counts: Record<LeadStatus, number> = { new: 0, saved: 0, dismissed: 0 };
-  for (const row of rows) counts[row.status] = Number(row.n);
+  for (const row of rows) counts[row.status] += 1;
   return counts;
 }
 

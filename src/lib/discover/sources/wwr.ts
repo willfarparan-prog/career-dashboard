@@ -65,6 +65,7 @@ export function parseWwr(xml: string, spec: SearchSpec, now = new Date()): Norma
       salaryMin: null,
       salaryMax: null,
       salaryText: "",
+      salaryProvenance: "unknown",
       publisher: LABEL,
       url,
       applyOptions: [{ publisher: LABEL, url, isDirect: false }],

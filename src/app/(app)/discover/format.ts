@@ -1,4 +1,4 @@
-import { LEAD_SOURCES, LEAD_STATUSES, type LeadSource, type LeadStatus } from "@/db/schema";
+import { LEAD_SOURCES, LEAD_STATUSES, type DiscoverMode, type LeadSource, type LeadStatus } from "@/db/schema";
 import type { SearchInput } from "@/lib/discover/searches";
 import type { RefreshSummary } from "@/lib/discover/types";
 
@@ -36,7 +36,7 @@ export function isLeadSource(value: unknown): value is LeadSource {
 /* ---------- Inbox filters (searchParams) ---------- */
 
 export type InboxStatus = LeadStatus | "all";
-export type InboxQuery = { status: InboxStatus; source: LeadSource | null; searchId: string | null; good: boolean };
+export type InboxQuery = { status: InboxStatus; source: LeadSource | null; searchId: string | null; good: boolean; mode?: DiscoverMode; excluded?: boolean };
 
 type Params = Record<string, string | string[] | undefined>;
 
@@ -52,6 +52,8 @@ export function parseInboxQuery(params: Params): InboxQuery {
   const searchId = one(params, "search");
   const good = one(params, "good");
   return {
+    mode: one(params, "mode") === "explore" ? "explore" : "priority",
+    excluded: one(params, "mode") === "explore" && one(params, "excluded") === "1",
     status: status === "all" || (LEAD_STATUSES as readonly string[]).includes(status) ? (status as InboxStatus) : "new",
     source: isLeadSource(source) ? source : null,
     searchId: UUID.test(searchId) ? searchId : null,
@@ -63,6 +65,8 @@ export function parseInboxQuery(params: Params): InboxQuery {
 export function inboxHref(query: InboxQuery, change: Partial<InboxQuery> = {}): string {
   const next = { ...query, ...change };
   const params = new URLSearchParams();
+  if (next.mode === "explore") params.set("mode", "explore");
+  if (next.mode === "explore" && next.excluded) params.set("excluded", "1");
   if (next.status !== "new") params.set("status", next.status);
   if (next.source) params.set("source", next.source);
   if (next.searchId) params.set("search", next.searchId);
@@ -81,6 +85,8 @@ export function searchInputFromForm(formData: FormData): SearchInput {
   };
   const days = Number(get("maxAgeDays") || 7);
   return {
+    mode: get("mode") === "explore" ? "explore" : "priority",
+    directionTerms: get("directionTerms").split("\n").map((s) => s.trim()).filter(Boolean),
     name: get("name"),
     query: get("query"),
     location: get("location"),

@@ -36,6 +36,13 @@
       "when": 1790886399870,
       "tag": "0004_interview",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791021939876,
+      "tag": "0005_discover_explore",
+      "breakpoints": true
     }
   ]
 }

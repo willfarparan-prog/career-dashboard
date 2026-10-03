@@ -1,5 +1,5 @@
 import { ActionForm, SubmitButton } from "@/components/forms";
-import type { LeadSource } from "@/db/schema";
+import type { DiscoverMode, LeadSource } from "@/db/schema";
 import type { JobSearch } from "@/lib/discover/searches";
 import { createSearchAction, updateSearchAction } from "./actions";
 import { MAX_AGE_OPTIONS } from "./format";
@@ -7,20 +7,21 @@ import { MAX_AGE_OPTIONS } from "./format";
 export type SourceOption = { id: LeadSource; label: string; configured: boolean; remoteOnly: boolean };
 
 /** Create or edit a saved search. Validation lives in src/lib/discover/searches.ts. */
-export function SearchForm({ search, sources }: { search?: JobSearch; sources: SourceOption[] }) {
+export function SearchForm({ search, sources, mode = "priority", defaults }: { search?: JobSearch; sources: SourceOption[]; mode?: DiscoverMode; defaults?: { query?: string; location?: string; terms?: string[] } }) {
   const editing = Boolean(search);
   const days = search?.maxAgeDays ?? 7;
   return (
     <ActionForm action={editing ? updateSearchAction : createSearchAction} resetOnSuccess={!editing} className="space-y-3">
       {search ? <input type="hidden" name="searchId" value={search.id} /> : null}
+      <input type="hidden" name="mode" value={search?.mode ?? mode} />
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="field">
           <span>What</span>
-          <input name="query" required maxLength={120} defaultValue={search?.query ?? ""} className="input" placeholder="e.g. customer success manager" autoComplete="off" />
+          <input name="query" required maxLength={120} defaultValue={search?.query ?? defaults?.query ?? ""} className="input" placeholder={mode === "explore" ? "e.g. program coordinator" : "e.g. customer success manager"} autoComplete="off" />
         </label>
         <label className="field">
           <span>Where</span>
-          <input name="location" defaultValue={search?.location ?? ""} className="input" placeholder="e.g. Tampa, FL — blank for anywhere" autoComplete="off" />
+          <input name="location" defaultValue={search?.location ?? defaults?.location ?? ""} className="input" placeholder="e.g. Tampa, FL — blank for anywhere" autoComplete="off" />
         </label>
         <label className="field">
           <span>Name</span>
@@ -37,6 +38,11 @@ export function SearchForm({ search, sources }: { search?: JobSearch; sources: S
           </select>
         </label>
       </div>
+
+      {(search?.mode ?? mode) === "explore" ? <label className="field">
+        <span>Related title phrases for ranking (one per line)</span>
+        <textarea name="directionTerms" className="input" rows={2} defaultValue={(search?.directionTerms ?? defaults?.terms ?? []).join("\n")} />
+      </label> : null}
 
       <label className="flex items-center gap-2 text-[0.8125rem]">
         <input type="checkbox" name="remoteOnly" defaultChecked={search?.remoteOnly ?? false} className="size-4 accent-primary" />

@@ -1,4 +1,4 @@
-import type { CareerPath, ScoreReason } from "@/db/schema";
+import type { CareerPath, DiscoverMode, ScoreReason } from "@/db/schema";
 import { CAREER_PATH_LABELS, normalizeText } from "@/lib/jobs/format";
 import { keywordHits, queryKeywords } from "./text";
 import type { NormalizedLead } from "./types";
@@ -21,6 +21,8 @@ export type ScoreContext = {
   remoteOk: boolean;
   compMin: number | null;
   targetRoles: string[];
+  mode?: DiscoverMode;
+  directionTerms?: string[];
 };
 
 export type LeadScore = { score: number; reasons: ScoreReason[] };
@@ -114,10 +116,18 @@ function freshnessPoints(postedAt: Date | null, now: Date): ScoreReason {
 /** 0–100 with signed, labeled reasons that add up to the score. */
 export function scoreLead(lead: NormalizedLead, context: ScoreContext, now = new Date()): LeadScore {
   const reasons: ScoreReason[] = [titlePoints(lead.title, lead.description, context.query)];
-  const role = rolePoints(lead.title, context.targetRoles);
+  const terms = context.directionTerms?.length ? context.directionTerms : [context.query];
+  const alternativeMatch = terms.some((term) => {
+    const keywords = queryKeywords(term);
+    return keywords.length > 0 && keywordHits(lead.title, keywords) === keywords.length;
+  });
+  const role = context.mode === "explore"
+    ? alternativeMatch ? { label: "Matches your alternative direction", points: 20 } : null
+    : rolePoints(lead.title, context.targetRoles);
   if (role) reasons.push(role);
   reasons.push(locationPoints(lead, context.targetLocations, context.remoteOk));
-  reasons.push(payPoints(lead, context.compMin));
+  reasons.push(context.mode === "explore" && lead.salaryProvenance !== "disclosed"
+    ? { label: "Pay unconfirmed", points: 5 } : payPoints(lead, context.compMin));
   reasons.push(freshnessPoints(lead.postedAt, now));
   const title = plain(lead.title);
   for (const mismatch of MISMATCHES) {

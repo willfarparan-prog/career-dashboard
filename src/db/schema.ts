@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { boolean, index, integer, jsonb, pgTable, real, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import type { CareerDirection, ExplorePreferences, FitReview } from "@/lib/discover/explore-types";
 
 /*
  * The career record is the source of truth. Claude reads it and drafts from
@@ -323,11 +324,17 @@ export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
 export type ApplyOption = { publisher: string; url: string; isDirect: boolean };
 export type ScoreReason = { label: string; points: number };
+export const DISCOVER_MODES = ["priority", "explore"] as const;
+export type DiscoverMode = (typeof DISCOVER_MODES)[number];
+export const SALARY_PROVENANCE = ["disclosed", "estimated", "unknown"] as const;
+export type SalaryProvenance = (typeof SALARY_PROVENANCE)[number];
 
 export const jobSearches = pgTable("job_searches", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").notNull(),
   name: text("name").notNull(),
+  mode: text("mode", { enum: DISCOVER_MODES }).notNull().default("priority"),
+  directionTerms: jsonb("direction_terms").$type<string[]>().notNull().default([]),
   /** What to search for, e.g. "customer success manager". */
   query: text("query").notNull(),
   /** Free-text location, e.g. "Tampa, FL"; empty = anywhere. */
@@ -358,6 +365,7 @@ export const jobLeads = pgTable("job_leads", {
   salaryMin: integer("salary_min"),
   salaryMax: integer("salary_max"),
   salaryText: text("salary_text").notNull().default(""),
+  salaryProvenance: text("salary_provenance", { enum: SALARY_PROVENANCE }).notNull().default("unknown"),
   /** Where the listing was published, e.g. "LinkedIn", "Indeed" (JSearch), or the board name. */
   publisher: text("publisher").notNull().default(""),
   /** The link to open (official apply page when known). */
@@ -376,6 +384,42 @@ export const jobLeads = pgTable("job_leads", {
   index("job_leads_user_status_idx").on(t.userId, t.status),
   index("job_leads_dedupe_idx").on(t.userId, t.dedupeKey),
 ]);
+
+/** Search membership survives search deletion; a posting's status is shared across views. */
+export const leadSearchMatches = pgTable("lead_search_matches", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  leadId: uuid("lead_id").notNull().references(() => jobLeads.id, { onDelete: "cascade" }),
+  searchId: uuid("search_id").references(() => jobSearches.id, { onDelete: "set null" }),
+  // Stable even after deletion, making retries idempotent.
+  searchKey: text("search_key").notNull(),
+  mode: text("mode", { enum: DISCOVER_MODES }).notNull().default("priority"),
+  query: text("query").notNull(),
+  directionTerms: jsonb("direction_terms").$type<string[]>().notNull().default([]),
+  score: integer("score").notNull(),
+  scoreReasons: jsonb("score_reasons").$type<ScoreReason[]>().notNull().default([]),
+}, (t) => [uniqueIndex("lead_search_matches_key_idx").on(t.userId, t.leadId, t.searchKey), index("lead_search_matches_mode_idx").on(t.userId, t.mode)]);
+
+export const careerExplorations = pgTable("career_explorations", {
+  userId: text("user_id").primaryKey(),
+  preferences: jsonb("preferences").$type<ExplorePreferences>().notNull(),
+  directions: jsonb("directions").$type<CareerDirection[]>().notNull().default([]),
+  inputFingerprint: text("input_fingerprint").notNull(),
+  model: text("model").notNull(),
+  promptVersion: text("prompt_version").notNull(),
+  updatedAt: updatedAt(),
+});
+
+export const leadFitReviews = pgTable("lead_fit_reviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  leadId: uuid("lead_id").notNull().references(() => jobLeads.id, { onDelete: "cascade" }),
+  content: jsonb("content").$type<FitReview>().notNull(),
+  inputFingerprint: text("input_fingerprint").notNull(),
+  model: text("model").notNull(),
+  promptVersion: text("prompt_version").notNull(),
+  updatedAt: updatedAt(),
+}, (t) => [uniqueIndex("lead_fit_reviews_user_lead_idx").on(t.userId, t.leadId)]);
 
 /** One fetch from one source for one search: throttling, quotas and the status shown on Discover. */
 export const discoverRuns = pgTable("discover_runs", {

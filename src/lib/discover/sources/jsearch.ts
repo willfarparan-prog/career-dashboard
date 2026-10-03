@@ -125,6 +125,7 @@ export function parseJsearch(body: unknown, spec: SearchSpec, now = new Date()):
       salaryMin: isUsd ? annualize(rawMin, period) : null,
       salaryMax: isUsd ? annualize(rawMax, period) : null,
       salaryText: formatSalary(rawMin, rawMax, period, currency),
+      salaryProvenance: isUsd && (rawMin != null || rawMax != null) ? "disclosed" : "unknown",
       publisher: oneLine(item.job_publisher) || LABEL,
       url,
       applyOptions: options,

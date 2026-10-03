@@ -1,6 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import type { Database } from "@/db";
-import { LEAD_SOURCES, jobSearches, type CareerPath, type LeadSource } from "@/db/schema";
+import { DISCOVER_MODES, LEAD_SOURCES, jobSearches, type DiscoverMode, type CareerPath, type LeadSource } from "@/db/schema";
 
 export type JobSearch = typeof jobSearches.$inferSelect;
 
@@ -12,6 +12,8 @@ export class SearchError extends Error {
 }
 
 export type SearchInput = {
+  mode?: DiscoverMode;
+  directionTerms?: string[];
   name?: string;
   query: string;
   location?: string;
@@ -21,6 +23,7 @@ export type SearchInput = {
 };
 
 export function validateSearch(input: SearchInput) {
+  if (input.mode && !DISCOVER_MODES.includes(input.mode)) throw new SearchError("Choose Priority paths or Explore other careers.");
   const query = input.query.trim();
   if (!query) throw new SearchError("Say what to search for, e.g. \"customer success manager\".");
   if (query.length > 120) throw new SearchError("Keep the search under 120 characters.");
@@ -29,6 +32,8 @@ export function validateSearch(input: SearchInput) {
   const maxAgeDays = input.maxAgeDays ?? 7;
   if (!Number.isInteger(maxAgeDays) || maxAgeDays < 1 || maxAgeDays > 30) throw new SearchError("Posted within must be 1–30 days.");
   return {
+    mode: input.mode ?? "priority",
+    directionTerms: [...new Set((input.directionTerms ?? []).map((s) => s.trim().slice(0, 80)).filter(Boolean))].slice(0, 8),
     name: (input.name ?? "").trim() || query,
     query,
     location: (input.location ?? "").trim(),
@@ -38,8 +43,8 @@ export function validateSearch(input: SearchInput) {
   };
 }
 
-export async function listSearches(db: Database, userId: string): Promise<JobSearch[]> {
-  return db.select().from(jobSearches).where(eq(jobSearches.userId, userId)).orderBy(asc(jobSearches.createdAt));
+export async function listSearches(db: Database, userId: string, mode?: DiscoverMode): Promise<JobSearch[]> {
+  return db.select().from(jobSearches).where(and(eq(jobSearches.userId, userId), mode ? eq(jobSearches.mode, mode) : undefined)).orderBy(asc(jobSearches.createdAt));
 }
 
 export async function getSearch(db: Database, userId: string, id: string): Promise<JobSearch | null> {
@@ -53,7 +58,10 @@ export async function createSearch(db: Database, userId: string, input: SearchIn
 }
 
 export async function updateSearch(db: Database, userId: string, id: string, input: SearchInput): Promise<void> {
-  const values = validateSearch(input);
+  const existing = await getSearch(db, userId, id);
+  if (!existing) throw new SearchError("Search not found.");
+  if (input.mode && input.mode !== existing.mode) throw new SearchError("Create a new search to use another view.");
+  const values = validateSearch({ ...input, mode: existing.mode });
   const updated = await db.update(jobSearches).set({ ...values, updatedAt: new Date() }).where(and(eq(jobSearches.id, id), eq(jobSearches.userId, userId))).returning({ id: jobSearches.id });
   if (!updated.length) throw new SearchError("Search not found.");
 }

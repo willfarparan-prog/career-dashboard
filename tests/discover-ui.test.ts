@@ -268,9 +268,10 @@ describe("inbox filters", () => {
   const SEARCH_ID = "3f2b8c1e-8a4d-4f5e-9c1a-2b3c4d5e6f70";
 
   test("parse with safe defaults", () => {
-    assert.deepEqual(parseInboxQuery({}), { status: "new", source: null, searchId: null, good: false });
-    assert.deepEqual(parseInboxQuery({ status: "saved", source: "adzuna", search: SEARCH_ID, good: "1" }), { status: "saved", source: "adzuna", searchId: SEARCH_ID, good: true });
-    assert.deepEqual(parseInboxQuery({ status: "bogus", source: "monster", search: "1; drop table", good: "0" }), { status: "new", source: null, searchId: null, good: false });
+    assert.deepEqual(parseInboxQuery({}), { mode: "priority", excluded: false, status: "new", source: null, searchId: null, good: false });
+    assert.deepEqual(parseInboxQuery({ status: "saved", source: "adzuna", search: SEARCH_ID, good: "1" }), { mode: "priority", excluded: false, status: "saved", source: "adzuna", searchId: SEARCH_ID, good: true });
+    assert.deepEqual(parseInboxQuery({ status: "bogus", source: "monster", search: "1; drop table", good: "0" }), { mode: "priority", excluded: false, status: "new", source: null, searchId: null, good: false });
+    assert.deepEqual(parseInboxQuery({ mode: "explore", excluded: "1" }), { mode: "explore", excluded: true, status: "new", source: null, searchId: null, good: false });
     assert.equal(parseInboxQuery({ status: ["all", "saved"] }).status, "all");
   });
 
@@ -280,6 +281,7 @@ describe("inbox filters", () => {
     assert.equal(inboxHref(query, { status: "dismissed" }), "/discover?status=dismissed&source=remotive&good=1");
     assert.equal(inboxHref(query, { source: null, good: false }), "/discover");
     assert.equal(inboxHref(parseInboxQuery({}), { searchId: SEARCH_ID }), `/discover?search=${SEARCH_ID}`);
+    assert.equal(inboxHref(parseInboxQuery({ mode: "explore", search: SEARCH_ID }), { mode: "priority", searchId: null }), "/discover");
   });
 });
 
@@ -292,10 +294,10 @@ test("searchInputFromForm reads the saved-search form", () => {
   form.append("sources", "jsearch");
   form.append("sources", "remotive");
   form.set("maxAgeDays", "14");
-  assert.deepEqual(searchInputFromForm(form), { name: "", query: "customer success", location: "Tampa, FL", remoteOnly: true, sources: ["jsearch", "remotive"], maxAgeDays: 14 });
+  assert.deepEqual(searchInputFromForm(form), { mode: "priority", directionTerms: [], name: "", query: "customer success", location: "Tampa, FL", remoteOnly: true, sources: ["jsearch", "remotive"], maxAgeDays: 14 });
 
   const empty = searchInputFromForm(new FormData());
-  assert.deepEqual(empty, { name: "", query: "", location: "", remoteOnly: false, sources: [], maxAgeDays: 7 });
+  assert.deepEqual(empty, { mode: "priority", directionTerms: [], name: "", query: "", location: "", remoteOnly: false, sources: [], maxAgeDays: 7 });
 });
 
 test("timeAgo reads naturally", () => {
