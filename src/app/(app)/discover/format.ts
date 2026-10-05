@@ -11,6 +11,7 @@ import type { RefreshSummary } from "@/lib/discover/types";
 export const SOURCE_LABELS: Record<LeadSource, string> = {
   jsearch: "JSearch (Google Jobs)",
   adzuna: "Adzuna",
+  usajobs: "USAJOBS",
   himalayas: "Himalayas",
   remotive: "Remotive",
   wwr: "We Work Remotely",

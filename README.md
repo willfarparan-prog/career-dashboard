@@ -33,6 +33,7 @@ Next.js 16 on Vercel · Neon Postgres and Neon Auth · Drizzle · Anthropic API 
 | `ANTHROPIC_API_KEY` | Claude API key (server-side only) |
 | `CLAUDE_MODEL` | Optional. Defaults to `claude-opus-5-5`; `claude-sonnet-5-5` costs about half as much. |
 | `AI_DAILY_BUDGET_USD` | Optional. Daily spending cap, default `5`. |
+| `USAJOBS_API_KEY`, `USAJOBS_EMAIL` | Optional. Discover's federal-jobs source: a free key from developer.usajobs.gov and the email it was issued to (sent as the User-Agent, as USAJOBS requires). Without them USAJOBS is skipped. |
 
 ## Develop
 

@@ -9,6 +9,7 @@ import { himalayas } from "@/lib/discover/sources/himalayas";
 import { SOURCES } from "@/lib/discover/sources";
 import { jsearch } from "@/lib/discover/sources/jsearch";
 import { remotive } from "@/lib/discover/sources/remotive";
+import { parseUsajobs, usajobs, usajobsLocation } from "@/lib/discover/sources/usajobs";
 import { formatSalary, parseSalaryText, SourceError } from "@/lib/discover/sources/shared";
 import { splitWwrTitle, wwr } from "@/lib/discover/sources/wwr";
 import { htmlToText, matchesQuery, MAX_TEXT } from "@/lib/discover/text";
@@ -21,7 +22,7 @@ import type { FetchLike, NormalizedLead, SearchSpec } from "@/lib/discover/types
  */
 
 const NOW = Date.parse("2026-09-29T12:00:00Z");
-const ENV_KEYS = ["JSEARCH_API_KEY", "JSEARCH_PROVIDER", "ADZUNA_APP_ID", "ADZUNA_APP_KEY"] as const;
+const ENV_KEYS = ["JSEARCH_API_KEY", "JSEARCH_PROVIDER", "ADZUNA_APP_ID", "ADZUNA_APP_KEY", "USAJOBS_API_KEY", "USAJOBS_EMAIL"] as const;
 const savedEnv = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
 
 function setEnv(values: Partial<Record<(typeof ENV_KEYS)[number], string>>) {
@@ -94,14 +95,16 @@ describe("text helpers", () => {
 });
 
 describe("registry", () => {
-  test("all five sources, in display order, with the required credits", () => {
-    assert.deepEqual(SOURCES.map((s) => s.id), ["jsearch", "adzuna", "himalayas", "remotive", "wwr"]);
+  test("all six sources, in display order, with the required credits", () => {
+    assert.deepEqual(SOURCES.map((s) => s.id), ["jsearch", "adzuna", "usajobs", "himalayas", "remotive", "wwr"]);
     assert.deepEqual(SOURCES.filter((s) => s.remoteOnly).map((s) => s.id), ["himalayas", "remotive", "wwr"]);
     assert.equal(adzuna.attribution?.text, "Jobs by Adzuna");
     assert.equal(remotive.attribution?.href, "https://remotive.com");
     assert.deepEqual(jsearch.policy, { minIntervalMinutes: 360, monthlyQuota: 200 });
     assert.deepEqual(adzuna.policy, { minIntervalMinutes: 360, dailyQuota: 250, monthlyQuota: 2500 });
     assert.deepEqual(remotive.policy, { minIntervalMinutes: 720, dailyQuota: 4 });
+    assert.deepEqual(usajobs.policy, { minIntervalMinutes: 360 });
+    assert.equal(usajobs.attribution, null);
   });
 });
 
@@ -278,6 +281,105 @@ describe("Adzuna", () => {
       assert.doesNotMatch(error.message, /test-app-key/);
       return true;
     });
+  });
+});
+
+describe("USAJOBS", () => {
+  const ENV = { USAJOBS_API_KEY: "test-usajobs-key", USAJOBS_EMAIL: "owner@example.com" };
+
+  test("builds the request with the documented headers and normalizes announcements", async () => {
+    setEnv(ENV);
+    assert.equal(usajobs.configured(), true);
+    const { fetchImpl, calls } = fakeFetch(() => json(fixture("usajobs.json")));
+    const { leads, requests } = await usajobs.fetch(SPEC, fetchImpl);
+
+    assert.equal(requests, 1);
+    const url = new URL(calls[0].url);
+    assert.equal(`${url.origin}${url.pathname}`, "https://data.usajobs.gov/api/search");
+    assert.equal(url.searchParams.get("Keyword"), "customer success manager");
+    assert.equal(url.searchParams.get("LocationName"), "Tampa, Florida");
+    assert.equal(url.searchParams.get("Radius"), "50");
+    assert.equal(url.searchParams.get("DatePosted"), "7");
+    assert.equal(url.searchParams.get("ResultsPerPage"), "50");
+    assert.equal(url.searchParams.get("SortField"), "opendate");
+    assert.equal(url.searchParams.get("SortDirection"), "desc");
+    assert.equal(url.searchParams.has("RemoteIndicator"), false);
+    assert.equal(calls[0].headers["authorization-key"], "test-usajobs-key");
+    assert.equal(calls[0].headers["user-agent"], "owner@example.com");
+    assert.equal(url.search.includes("test-usajobs-key"), false, "the key travels in a header, not the URL");
+
+    // The month-old and untitled announcements are dropped.
+    assert.deepEqual(leads.map((l) => l.externalId), ["845100001", "845100002", "845100003"]);
+    const coach = byId(leads, "845100001");
+    assert.equal(coach.source, "usajobs");
+    assert.equal(coach.title, "Strength and Conditioning Coach");
+    assert.equal(coach.company, "U.S. Special Operations Command");
+    assert.equal(coach.location, "MacDill AFB, Florida");
+    assert.deepEqual([coach.salaryMin, coach.salaryMax, coach.salaryText, coach.salaryProvenance], [86962, 113047, "$87k–$113k a year", "disclosed"]);
+    assert.equal(coach.url, "https://www.usajobs.gov:443/job/845100001");
+    assert.deepEqual(coach.applyOptions, [
+      { publisher: "USAJOBS", url: "https://www.usajobs.gov:443/job/845100001", isDirect: true },
+      { publisher: "USAJOBS (apply)", url: "https://www.usajobs.gov:443/job/845100001/apply", isDirect: true },
+    ]);
+    assert.equal(
+      coach.description,
+      "Deliver human performance programming for operators & support staff.\n\nDesign periodized training plans.\n\nRun athlete testing and return-to-play.\n\nCurrent CSCS certification. One year of specialized experience designing strength programs.",
+    );
+    assert.equal(coach.isRemote, false);
+    assert.equal(coach.postedAt?.toISOString(), "2026-09-27T00:00:00.000Z");
+    assert.equal(coach.publisher, "USAJOBS");
+
+    const fitness = byId(leads, "845100002");
+    assert.equal(fitness.company, "Department of the Navy", "falls back to the department");
+    assert.equal(fitness.location, "San Diego, California; Coronado, California; Camp Pendleton, California (+1 more)");
+    assert.deepEqual([fitness.salaryMin, fitness.salaryMax, fitness.salaryText], [50960, 62400, "$24.50–$30 an hour"]);
+    assert.equal(fitness.applyOptions.length, 1, "the apply link repeats the view link");
+
+    const remote = byId(leads, "845100003");
+    assert.equal(remote.isRemote, true);
+    assert.deepEqual([remote.salaryMin, remote.salaryMax, remote.salaryText, remote.salaryProvenance], [null, null, "", "unknown"], "without-compensation isn't a salary");
+  });
+
+  test("remote searches use RemoteIndicator; places and dates fit the API", async () => {
+    setEnv(ENV);
+    const { fetchImpl, calls } = fakeFetch(() => json('{"SearchResult":{"SearchResultItems":[]}}'));
+    await usajobs.fetch({ ...SPEC, remoteOnly: true }, fetchImpl);
+    await usajobs.fetch({ ...SPEC, location: "Remote", maxAgeDays: 90 }, fetchImpl);
+    for (const call of calls) {
+      const url = new URL(call.url);
+      assert.equal(url.searchParams.get("RemoteIndicator"), "True");
+      assert.equal(url.searchParams.has("LocationName"), false);
+      assert.equal(url.searchParams.get("Keyword"), "customer success manager", "no 'remote' keyword");
+    }
+    assert.equal(new URL(calls[1].url).searchParams.get("DatePosted"), "60", "capped at the API's 60 days");
+    assert.equal(usajobsLocation("San Diego, CA"), "San Diego, California");
+    assert.equal(usajobsLocation("austin, tx"), "austin, Texas");
+    assert.equal(usajobsLocation("Washington DC, District of Columbia"), "Washington DC, District of Columbia");
+    assert.equal(usajobsLocation("Paris, ZZ"), "Paris, ZZ");
+  });
+
+  test("bi-weekly pay is annualized; other pay codes are ignored", () => {
+    const body = (code: string, min: string, max: string) => ({ SearchResult: { SearchResultItems: [{ MatchedObjectId: "1", MatchedObjectDescriptor: {
+      PositionTitle: "Recreation Specialist", PositionURI: "https://www.usajobs.gov/job/1", PublicationStartDate: "2026-09-28T00:00:00",
+      PositionRemuneration: [{ MinimumRange: min, MaximumRange: max, RateIntervalCode: code }] } }] } });
+    const [biweekly] = parseUsajobs(body("BW", "3000", "4000"), SPEC);
+    assert.deepEqual([biweekly.salaryMin, biweekly.salaryMax, biweekly.salaryText], [78000, 104000, "$78k–$104k a year"]);
+    const [fee] = parseUsajobs(body("FB", "100", "200"), SPEC);
+    assert.deepEqual([fee.salaryMin, fee.salaryText], [null, ""]);
+  });
+
+  test("missing env vars and errors never echo the key or email", async () => {
+    setEnv({ USAJOBS_API_KEY: "test-usajobs-key" });
+    assert.equal(usajobs.configured(), false);
+    await assert.rejects(usajobs.fetch(SPEC, fakeFetch(() => json("{}")).fetchImpl), /USAJOBS_EMAIL/);
+    setEnv(ENV);
+    const problem = '{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.2","title":"Unauthorized","status":401}';
+    await assert.rejects(usajobs.fetch(SPEC, fakeFetch(() => json(problem, 401)).fetchImpl), (error: Error) => {
+      assert.equal(error.message, "USAJOBS returned 401 (check the API key).");
+      assert.equal((error as SourceError).requests, 1);
+      return true;
+    });
+    await assert.rejects(usajobs.fetch(SPEC, fakeFetch(() => new Response("<html>", { status: 200 })).fetchImpl), /USAJOBS sent a response that isn't valid JSON/);
   });
 });
 
@@ -487,10 +589,11 @@ describe("scoring", () => {
   });
 
   test("every fixture lead scores 0–100 with reasons that sum to the score", async () => {
-    setEnv({ JSEARCH_API_KEY: "k", ADZUNA_APP_ID: "i", ADZUNA_APP_KEY: "k" });
+    setEnv({ JSEARCH_API_KEY: "k", ADZUNA_APP_ID: "i", ADZUNA_APP_KEY: "k", USAJOBS_API_KEY: "k", USAJOBS_EMAIL: "e@example.com" });
     const all = [
       ...(await jsearch.fetch(SPEC, fakeFetch(() => json(fixture("jsearch.json"))).fetchImpl)).leads,
       ...(await adzuna.fetch(SPEC, fakeFetch(() => json(fixture("adzuna.json"))).fetchImpl)).leads,
+      ...(await usajobs.fetch(SPEC, fakeFetch(() => json(fixture("usajobs.json"))).fetchImpl)).leads,
       ...(await himalayas.fetch(SPEC, fakeFetch(() => json(fixture("himalayas.json"))).fetchImpl)).leads,
       ...(await remotive.fetch(SPEC, fakeFetch(() => json(fixture("remotive.json"))).fetchImpl)).leads,
       ...(await wwr.fetch(SPEC, fakeFetch(() => new Response(fixture("wwr.rss"))).fetchImpl)).leads,

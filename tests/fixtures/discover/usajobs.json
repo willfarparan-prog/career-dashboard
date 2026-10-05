@@ -1,0 +1,88 @@
+{
+  "LanguageCode": "EN",
+  "SearchParameters": {},
+  "SearchResult": {
+    "SearchResultCount": 5,
+    "SearchResultCountAll": 5,
+    "SearchResultItems": [
+      {
+        "MatchedObjectId": "845100001",
+        "MatchedObjectDescriptor": {
+          "PositionID": "SOCOM-26-0001",
+          "PositionTitle": "Strength and Conditioning Coach",
+          "PositionURI": "https://www.usajobs.gov:443/job/845100001",
+          "ApplyURI": ["https://www.usajobs.gov:443/job/845100001/apply"],
+          "PositionLocationDisplay": "MacDill AFB, Florida",
+          "PositionLocation": [{ "LocationName": "MacDill AFB, Florida", "CountryCode": "United States", "CityName": "MacDill AFB, Florida" }],
+          "OrganizationName": "U.S. Special Operations Command",
+          "DepartmentName": "Department of Defense",
+          "QualificationSummary": "Current CSCS certification. One year of specialized experience <b>designing</b> strength programs.",
+          "PositionRemuneration": [{ "MinimumRange": "86962.0", "MaximumRange": "113047.0", "RateIntervalCode": "PA", "Description": "Per Year" }],
+          "PublicationStartDate": "2026-09-27T00:00:00.0000",
+          "ApplicationCloseDate": "2026-10-10T23:59:59.9970",
+          "UserArea": {
+            "Details": {
+              "JobSummary": "Deliver human performance programming for operators &amp; support staff.",
+              "MajorDuties": ["Design periodized training plans.", "Run athlete testing and return-to-play."],
+              "RemoteIndicator": false,
+              "TeleworkEligible": false
+            }
+          }
+        }
+      },
+      {
+        "MatchedObjectId": "845100002",
+        "MatchedObjectDescriptor": {
+          "PositionTitle": "Fitness Specialist",
+          "PositionURI": "https://www.usajobs.gov:443/job/845100002",
+          "ApplyURI": ["https://www.usajobs.gov:443/job/845100002"],
+          "PositionLocationDisplay": "Multiple Locations",
+          "PositionLocation": [
+            { "LocationName": "San Diego, California" },
+            { "LocationName": "Coronado, California" },
+            { "LocationName": "Camp Pendleton, California" },
+            { "LocationName": "Twentynine Palms, California" }
+          ],
+          "OrganizationName": "",
+          "DepartmentName": "Department of the Navy",
+          "PositionRemuneration": [{ "MinimumRange": "24.5", "MaximumRange": "30", "RateIntervalCode": "PH", "Description": "Per Hour" }],
+          "PublicationStartDate": "2026-09-28T00:00:00.0000",
+          "UserArea": { "Details": { "JobSummary": "Lead group fitness and assessments.", "RemoteIndicator": false } }
+        }
+      },
+      {
+        "MatchedObjectId": "845100003",
+        "MatchedObjectDescriptor": {
+          "PositionTitle": "Human Performance Program Analyst",
+          "PositionURI": "https://www.usajobs.gov:443/job/845100003",
+          "ApplyURI": [],
+          "PositionLocationDisplay": "Anywhere in the U.S. (remote job)",
+          "OrganizationName": "Defense Health Agency",
+          "PositionRemuneration": [{ "MinimumRange": "0", "MaximumRange": "0", "RateIntervalCode": "WC", "Description": "Without Compensation" }],
+          "PublicationStartDate": "2026-09-29T00:00:00.0000",
+          "UserArea": { "Details": { "JobSummary": "Analyze program data.", "RemoteIndicator": true } }
+        }
+      },
+      {
+        "MatchedObjectId": "845100004",
+        "MatchedObjectDescriptor": {
+          "PositionTitle": "Athletic Trainer",
+          "PositionURI": "https://www.usajobs.gov:443/job/845100004",
+          "PositionLocationDisplay": "Austin, Texas",
+          "OrganizationName": "Department of Veterans Affairs",
+          "PublicationStartDate": "2026-08-30T00:00:00.0000",
+          "UserArea": { "Details": { "JobSummary": "Posted a month ago." } }
+        }
+      },
+      {
+        "MatchedObjectId": "845100005",
+        "MatchedObjectDescriptor": {
+          "PositionTitle": "",
+          "PositionURI": "https://www.usajobs.gov:443/job/845100005",
+          "PublicationStartDate": "2026-09-28T00:00:00.0000"
+        }
+      }
+    ],
+    "UserArea": { "NumberOfPages": "1", "IsRadialSearch": true }
+  }
+}
