@@ -3,7 +3,7 @@ import type { CareerPath } from "@/db/schema";
 import type { LibraryContext } from "@/lib/ai/library";
 import { runStructured, type StructuredResult } from "@/lib/ai/run";
 
-export const PROMPT_VERSION = "draft@1";
+export const PROMPT_VERSION = "draft@2";
 
 export const DraftSchema = z.object({
   summary: z.object({ text: z.string(), evidence: z.array(z.string()) }),
@@ -23,6 +23,7 @@ export const CAREER_PATH_LABELS: Record<CareerPath, string> = {
   implementation: "Implementation / onboarding",
   account_management: "Account management",
   employer_wellbeing: "Employer wellbeing / benefits",
+  strength_conditioning: "Strength & conditioning / tactical performance",
   other: "Other",
 };
 
@@ -45,6 +46,7 @@ Rules:
 - Bullet style: start with a strong verb (past tense for past roles, present for current), about 30 words or fewer, action + scope + result.
 - Summary: 2–3 sentences aimed at this role, honest about the career change; list the achievement aliases it relies on.
 - Skills: 8–14 items taken only from the library's skills and achievement tools; evidence = aliases of achievements that show the skill (can be empty for a listed skill).
+- Positioning "Strength & conditioning / tactical performance" is the candidate's own field, not a career change: keep the coaching language (programming, athlete development, testing, return to play) instead of translating it into business terms, and don't frame the summary as a career change.
 - notes: up to 5 short notes for the candidate — gaps to address or metrics that would make a bullet stronger.`;
 
 function describeJob(job: DraftJob, careerPath: CareerPath, emphasis: string) {

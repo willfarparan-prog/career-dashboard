@@ -378,3 +378,8 @@ export const GUIDE_ORDER: GuidePath[] = ["customer_success", "implementation", "
 export function isGuidePath(value: string): value is GuidePath {
   return (GUIDE_ORDER as string[]).includes(value);
 }
+
+/** The profile's target roles that have a field guide. */
+export function guideTargets(targetRoles: readonly string[]): GuidePath[] {
+  return targetRoles.filter(isGuidePath);
+}

@@ -26,7 +26,7 @@ export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
 export const BULLET_STATES = ["proposed", "accepted", "rejected", "locked"] as const;
 export type BulletState = (typeof BULLET_STATES)[number];
 
-export const CAREER_PATHS = ["customer_success", "implementation", "account_management", "employer_wellbeing", "other"] as const;
+export const CAREER_PATHS = ["customer_success", "implementation", "account_management", "employer_wellbeing", "strength_conditioning", "other"] as const;
 export type CareerPath = (typeof CAREER_PATHS)[number];
 
 export type Metric = { label: string; value: string; unit: string | null; status: FactStatus };

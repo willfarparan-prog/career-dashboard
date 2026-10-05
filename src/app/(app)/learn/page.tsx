@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, ButtonLink, Card, EmptyState, Notice, PageHeader, Stat } from "@/components/ui";
 import { getDatabase } from "@/db";
-import { GUIDE_ORDER, GUIDES } from "@/content/learn/guides";
+import { GUIDE_ORDER, GUIDES, guideTargets } from "@/content/learn/guides";
 import { RESOURCES, RESOURCES_CHECKED_ON } from "@/content/learn/resources";
-import { GUIDE_SECTIONS, type GuidePath } from "@/content/learn/types";
+import { GUIDE_SECTIONS } from "@/content/learn/types";
 import { requireViewer } from "@/lib/auth/owner";
 import { getProfile } from "@/lib/career/profile";
 import { gapRoadmap, type GapTopic } from "@/lib/learn/gaps";
@@ -35,7 +35,7 @@ export default async function LearnPage() {
   }
 
   const [profile, progress, roadmap] = await Promise.all([getProfile(db, userId), listProgress(db, userId), gapRoadmap(db, userId)]);
-  const targets = (profile?.targetRoles ?? []).filter((path): path is GuidePath => path !== "other");
+  const targets = guideTargets(profile?.targetRoles ?? []);
   const order = [...GUIDE_ORDER].sort((a, b) => Number(targets.includes(b)) - Number(targets.includes(a)));
   const summary = summarize(progress);
   const resources = [...RESOURCES].sort((a, b) => Number(b.paths.some((p) => targets.includes(p))) - Number(a.paths.some((p) => targets.includes(p))));

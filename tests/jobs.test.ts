@@ -137,6 +137,12 @@ test("mergeAnalysis leaves owner values alone and sets career path only on first
   assert.equal(mergeAnalysis(job, { ...output, compMin: 45, compMax: 55 }).compMin, undefined);
 });
 
+test("fake analysis files strength & conditioning postings under their own path, even when they mention wellness", () => {
+  const posting = "Tactical Strength and Conditioning Coach\nNavy Region Southwest — San Diego, CA\nDeliver human performance programming and support the base wellness program.\nRequired: CSCS";
+  assert.equal(fakeAnalysis(posting).careerPath, "strength_conditioning");
+  assert.equal(fakeAnalysis("Employee Wellness Program Manager\nRun our benefits and wellness programs.").careerPath, "employer_wellbeing");
+});
+
 test("pay parsing handles ranges, k suffixes and hourly rates", () => {
   assert.deepEqual(parseCompRange("Salary: $85,000 - $100,000").min, 85000);
   assert.deepEqual(parseCompRange("$85k–$100k"), { min: 85000, max: 100000, text: "$85k–$100k" });

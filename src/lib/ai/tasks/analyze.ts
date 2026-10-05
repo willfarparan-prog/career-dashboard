@@ -11,7 +11,7 @@ import { listRequirements, requireJob, type Job } from "@/lib/jobs/jobs";
  * the owner typed at intake wins: analysis only fills blanks.
  */
 
-export const PROMPT_VERSION = "analyze@1";
+export const PROMPT_VERSION = "analyze@2";
 
 export const analysisSchema = z.object({
   company: z.string().describe("Hiring company as written, or \"\" if not stated."),
@@ -49,7 +49,7 @@ const INSTRUCTIONS = `Extract the job posting in the user message into the schem
 - screeningQuestions: questions the posting asks applicants to answer, verbatim. [] if none.
 - tools: every named software, platform or system in the posting.
 - companySize: only when the posting says (headcount, "startup", "Fortune 500"…); otherwise "unknown".
-- careerPath: the closest of customer_success, implementation, account_management, employer_wellbeing (benefits, wellness, EAP, people programs), or other.`;
+- careerPath: the closest of customer_success, implementation, account_management, employer_wellbeing (benefits, wellness, EAP, people programs), strength_conditioning (strength & conditioning, sports / tactical / human-performance coaching), or other.`;
 
 /* ---------- Deterministic stand-in for Claude (AI_FAKE=1) ---------- */
 
@@ -78,6 +78,8 @@ function fakeCareerPath(text: string): CareerPath {
   const t = text.toLowerCase();
   if (/implementation|onboarding specialist/.test(t)) return "implementation";
   if (/account manag/.test(t)) return "account_management";
+  // Before wellbeing: S&C postings often mention wellness too.
+  if (/strength (and|&) conditioning|strength coach|tactical (strength|performance)|human performance|sports performance|\bcscs\b|\btsac/.test(t)) return "strength_conditioning";
   if (/well-?being|wellness|benefits/.test(t)) return "employer_wellbeing";
   if (/customer success/.test(t)) return "customer_success";
   return "other";

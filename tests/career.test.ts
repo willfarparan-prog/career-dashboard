@@ -90,6 +90,7 @@ test("search settings save targets, comp minimum and clamped fit weights", async
   const form = new FormData();
   form.append("targetRoles", "customer_success");
   form.append("targetRoles", "implementation");
+  form.append("targetRoles", "strength_conditioning");
   form.append("targetRoles", "astronaut");
   form.set("targetLocations", "San Francisco, Remote, Tampa");
   form.set("remoteOk", "on");
@@ -98,7 +99,7 @@ test("search settings save targets, comp minimum and clamped fit weights", async
   form.set("weight_location", "9");
   form.set("weight_fit", "");
   const saved = await saveSearchSettings(db, ME, parseSearchSettingsForm(form));
-  assert.deepEqual(saved.targetRoles, ["customer_success", "implementation"]);
+  assert.deepEqual(saved.targetRoles, ["customer_success", "implementation", "strength_conditioning"]);
   assert.deepEqual(saved.targetLocations, ["San Francisco", "Remote", "Tampa"]);
   assert.equal(saved.remoteOk, true);
   assert.equal(saved.compMin, 85000);

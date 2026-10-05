@@ -36,6 +36,7 @@ export const CAREER_PATH_LABELS: Record<CareerPath, string> = {
   implementation: "Implementation",
   account_management: "Account management",
   employer_wellbeing: "Employer wellbeing",
+  strength_conditioning: "Strength & conditioning",
   other: "Other",
 };
 
