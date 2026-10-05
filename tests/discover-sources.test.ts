@@ -9,7 +9,7 @@ import { himalayas } from "@/lib/discover/sources/himalayas";
 import { SOURCES } from "@/lib/discover/sources";
 import { jsearch } from "@/lib/discover/sources/jsearch";
 import { remotive } from "@/lib/discover/sources/remotive";
-import { parseUsajobs, usajobs, usajobsLocation } from "@/lib/discover/sources/usajobs";
+import { parseUsajobs, titleMatches, usajobs, usajobsLocation } from "@/lib/discover/sources/usajobs";
 import { formatSalary, parseSalaryText, SourceError } from "@/lib/discover/sources/shared";
 import { splitWwrTitle, wwr } from "@/lib/discover/sources/wwr";
 import { htmlToText, matchesQuery, MAX_TEXT } from "@/lib/discover/text";
@@ -286,17 +286,18 @@ describe("Adzuna", () => {
 
 describe("USAJOBS", () => {
   const ENV = { USAJOBS_API_KEY: "test-usajobs-key", USAJOBS_EMAIL: "owner@example.com" };
+  const SC: SearchSpec = { ...SPEC, query: "strength and conditioning coach" };
 
   test("builds the request with the documented headers and normalizes announcements", async () => {
     setEnv(ENV);
     assert.equal(usajobs.configured(), true);
     const { fetchImpl, calls } = fakeFetch(() => json(fixture("usajobs.json")));
-    const { leads, requests } = await usajobs.fetch(SPEC, fetchImpl);
+    const { leads, requests } = await usajobs.fetch(SC, fetchImpl);
 
     assert.equal(requests, 1);
     const url = new URL(calls[0].url);
     assert.equal(`${url.origin}${url.pathname}`, "https://data.usajobs.gov/api/search");
-    assert.equal(url.searchParams.get("Keyword"), "customer success manager");
+    assert.equal(url.searchParams.get("Keyword"), "strength and conditioning coach");
     assert.equal(url.searchParams.get("LocationName"), "Tampa, Florida");
     assert.equal(url.searchParams.get("Radius"), "50");
     assert.equal(url.searchParams.get("DatePosted"), "7");
@@ -308,8 +309,9 @@ describe("USAJOBS", () => {
     assert.equal(calls[0].headers["user-agent"], "owner@example.com");
     assert.equal(url.search.includes("test-usajobs-key"), false, "the key travels in a header, not the URL");
 
-    // The month-old and untitled announcements are dropped.
-    assert.deepEqual(leads.map((l) => l.externalId), ["845100001", "845100002", "845100003"]);
+    // Dropped: the month-old one, the untitled one, and titles without the search words
+    // (whose descriptions do mention them, as federal boilerplate does).
+    assert.deepEqual(leads.map((l) => l.externalId), ["845100001", "845100002", "845100003", "887081600"]);
     const coach = byId(leads, "845100001");
     assert.equal(coach.source, "usajobs");
     assert.equal(coach.title, "Strength and Conditioning Coach");
@@ -358,13 +360,23 @@ describe("USAJOBS", () => {
     assert.equal(usajobsLocation("Paris, ZZ"), "Paris, ZZ");
   });
 
+  test("titles must carry at least half the search words, because USAJOBS matches synonyms and full text", () => {
+    assert.equal(titleMatches("SUPERVISORY STRENGTH AND CONITIONING COACH", "strength and conditioning coach"), true, "survives the posting's typo");
+    assert.equal(titleMatches("Exercise Physiologist", "exercise physiologist"), true);
+    assert.equal(titleMatches("Human Performance Specialist", "human performance specialist"), true);
+    for (const title of ["Health Insurance Specialist", "Operations Research Analyst", "MRT- Inpatient Coder", "Program Manager"]) {
+      assert.equal(titleMatches(title, "human performance specialist"), false, title);
+    }
+    assert.equal(titleMatches("Anything", ""), true);
+  });
+
   test("bi-weekly pay is annualized; other pay codes are ignored", () => {
     const body = (code: string, min: string, max: string) => ({ SearchResult: { SearchResultItems: [{ MatchedObjectId: "1", MatchedObjectDescriptor: {
       PositionTitle: "Recreation Specialist", PositionURI: "https://www.usajobs.gov/job/1", PublicationStartDate: "2026-09-28T00:00:00",
       PositionRemuneration: [{ MinimumRange: min, MaximumRange: max, RateIntervalCode: code }] } }] } });
-    const [biweekly] = parseUsajobs(body("BW", "3000", "4000"), SPEC);
+    const [biweekly] = parseUsajobs(body("BW", "3000", "4000"), { ...SPEC, query: "recreation specialist" });
     assert.deepEqual([biweekly.salaryMin, biweekly.salaryMax, biweekly.salaryText], [78000, 104000, "$78k–$104k a year"]);
-    const [fee] = parseUsajobs(body("FB", "100", "200"), SPEC);
+    const [fee] = parseUsajobs(body("FB", "100", "200"), { ...SPEC, query: "recreation specialist" });
     assert.deepEqual([fee.salaryMin, fee.salaryText], [null, ""]);
   });
 
@@ -593,7 +605,7 @@ describe("scoring", () => {
     const all = [
       ...(await jsearch.fetch(SPEC, fakeFetch(() => json(fixture("jsearch.json"))).fetchImpl)).leads,
       ...(await adzuna.fetch(SPEC, fakeFetch(() => json(fixture("adzuna.json"))).fetchImpl)).leads,
-      ...(await usajobs.fetch(SPEC, fakeFetch(() => json(fixture("usajobs.json"))).fetchImpl)).leads,
+      ...(await usajobs.fetch({ ...SPEC, query: "strength and conditioning coach" }, fakeFetch(() => json(fixture("usajobs.json"))).fetchImpl)).leads,
       ...(await himalayas.fetch(SPEC, fakeFetch(() => json(fixture("himalayas.json"))).fetchImpl)).leads,
       ...(await remotive.fetch(SPEC, fakeFetch(() => json(fixture("remotive.json"))).fetchImpl)).leads,
       ...(await wwr.fetch(SPEC, fakeFetch(() => new Response(fixture("wwr.rss"))).fetchImpl)).leads,

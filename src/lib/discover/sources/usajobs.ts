@@ -1,5 +1,5 @@
 import type { ApplyOption } from "@/db/schema";
-import { htmlToText, oneLine } from "../text";
+import { htmlToText, keywordHits, oneLine, queryKeywords } from "../text";
 import type { FetchLike, NormalizedLead, SearchSpec, SourceAdapter } from "../types";
 import {
   annualize,
@@ -26,6 +26,11 @@ import {
  * (developer.usajobs.gov). Free with a key; the registered email goes in the
  * User-Agent header. Public announcements only. Pay ranges are always the
  * posted grade range, so they count as disclosed.
+ *
+ * USAJOBS matches keywords against synonyms and the whole announcement, and
+ * federal boilerplate mentions "performance", "program" and "human" (HHS)
+ * almost everywhere. So, unlike the boards' loose matchesQuery(), a lead is
+ * kept only when its title carries at least half the search words.
  */
 
 const LABEL = "USAJOBS";
@@ -98,6 +103,12 @@ function textOf(value: unknown): string {
   return asArray(value).map((v) => str(v)).filter(Boolean).join("\n\n");
 }
 
+/** At least half the search words (stemmed) appear in the title. */
+export function titleMatches(title: string, query: string): boolean {
+  const keywords = queryKeywords(query);
+  return !keywords.length || keywordHits(title, keywords) >= Math.ceil(keywords.length / 2);
+}
+
 export function parseUsajobs(body: unknown, spec: SearchSpec, now = new Date()): NormalizedLead[] {
   const leads: NormalizedLead[] = [];
   for (const raw of asArray(asRecord(asRecord(body).SearchResult).SearchResultItems)) {
@@ -107,7 +118,7 @@ export function parseUsajobs(body: unknown, spec: SearchSpec, now = new Date()):
     const viewUrl = str(d.PositionURI);
     const applyUrl = asArray(d.ApplyURI).map(str).find(isHttpUrl) ?? "";
     const url = isHttpUrl(viewUrl) ? viewUrl : applyUrl;
-    if (!title || !url) continue;
+    if (!title || !url || !titleMatches(title, spec.query)) continue;
 
     const postedAt = parseDate(d.PublicationStartDate);
     if (!isFresh(postedAt, spec.maxAgeDays, now)) continue;
