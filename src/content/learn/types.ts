@@ -7,8 +7,8 @@ import type { CareerPath } from "@/db/schema";
  * test checks every reference resolves.
  */
 
-/** Target paths that have a field guide ("other" doesn't). */
-export type GuidePath = Exclude<CareerPath, "other">;
+/** Target paths that have a field guide ("other" and strength & conditioning don't). */
+export type GuidePath = Exclude<CareerPath, "other" | "strength_conditioning">;
 
 export type GlossaryTerm = {
   key: string;

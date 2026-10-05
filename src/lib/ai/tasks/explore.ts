@@ -7,7 +7,7 @@ import { explorationInputs, explorationFingerprint, requireExperience, type Expl
 import { EXPLORE_PREFERENCES, type CareerDirection } from "@/lib/discover/explore-types";
 import { workEligibility } from "@/lib/discover/eligibility";
 
-export const PROMPT_VERSION = "explore@1";
+export const PROMPT_VERSION = "explore@2";
 export const evidenceSchema = z.object({ text: z.string(), achievementAliases: z.array(z.string()), roleAliases: z.array(z.string()) });
 export const exploreSchema = z.object({ directions: z.array(z.object({
   title: z.string(), query: z.string(), terms: z.array(z.string()), work: z.string(), difference: z.string(),
@@ -15,7 +15,7 @@ export const exploreSchema = z.object({ directions: z.array(z.object({
   trainingMonths: z.number().nullable(), progression: z.string(),
 })) });
 
-const INSTRUCTIONS = `Suggest up to six realistic alternative career directions, distinct from the candidate's current hands-on work AND from these priority paths: customer success, implementation, account management, employer wellbeing/benefits/wellness.
+const INSTRUCTIONS = `Suggest up to six realistic alternative career directions, distinct from the candidate's current hands-on work AND from these priority paths: customer success, implementation, account management, employer wellbeing/benefits/wellness, strength & conditioning / tactical or human performance.
 Use only the supplied career library as facts about the candidate. Each strength MUST cite supporting achievement or role aliases. Respect fact statuses: needs_confirmation and approximate facts are tentative, not established qualifications. Never invent tools, degrees or experience.
 Focus on primarily desk/computer/administrative/coordination work, local office, hybrid or remote, without quota-driven sales, fieldwork, or hands-on coaching. Honor supplied locations and remote preference.
 Favor short upskilling and future pay/advancement potential. Medium preparation must be strictly less than eight months. trainingMonths is a tentative estimate, or null when unknown; do not promise readiness, qualification or eligibility. Explicitly explain unknown entry requirements and gaps. Omit paths clearly requiring longer training or a new degree the library doesn't support.
@@ -32,7 +32,7 @@ export function resolveDirections(output: z.infer<typeof exploreSchema>, inputs:
   return output.directions.flatMap((d) => {
     const query = d.query.trim().slice(0, 120);
     if (!query || seen.has(query.toLowerCase()) || (d.trainingMonths != null && (d.trainingMonths < 0 || d.trainingMonths >= 8))) return [];
-    if (/\b(customer success|client success|implementation|account manag|wellbeing|well-being|wellness|benefits)/i.test(`${d.title} ${query}`)) return [];
+    if (/\b(customer success|client success|implementation|account manag|wellbeing|well-being|wellness|benefits|strength (and|&) conditioning|tactical (strength|performance)|human performance|sports performance)/i.test(`${d.title} ${query}`)) return [];
     if (workEligibility({ title: d.title, description: d.work }).excluded) return [];
     const strengths = resolveStrengths(d.strengths, inputs);
     if (!strengths.length) return [];

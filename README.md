@@ -14,7 +14,9 @@ A private, Claude-powered workspace for job applications. It is built on one rul
 7. **Interview** (`/interview`, `/jobs/[id]/interview`). A STAR story bank (Claude can draft a story from an achievement; you edit before saving), competency coverage for your target roles, a question bank, and typed practice with feedback that flags claims your library doesn't back. Each job gets a prep pack (likely questions matched to your stories, honest framing for gaps, questions to ask, a research checklist), your own company notes, and its interview rounds. Upcoming rounds and unsent thank-you notes show on Home.
 8. **Claude activity** (`/activity`) logs every call's tokens and estimated cost. A daily budget caps spending.
 
-Discover also has **Priority paths** (the existing four-path searches) and **Explore other careers**. Explore suggests desk-based alternatives from the career library, lets you review each suggested search before adding it, and refreshes those searches only when you ask. Pay labels distinguish disclosed, estimated and unknown figures; an on-request fit review cites library evidence and posting excerpts. The daily cron continues to refresh Priority paths only.
+Discover also has **Priority paths** (searches for your target paths: customer success, implementation, account management, employer wellbeing, and strength & conditioning / tactical performance) and **Explore other careers**. Explore suggests desk-based alternatives from the career library, lets you review each suggested search before adding it, and refreshes those searches only when you ask. Pay labels distinguish disclosed, estimated and unknown figures; an on-request fit review cites library evidence and posting excerpts. The daily cron continues to refresh Priority paths only.
+
+Strength & conditioning is the owner's own field rather than a career change: it earns the Discover role bonus when ticked in Profile, resume drafts keep its coaching language, and it has no Learn field guide. Run S&C searches in Priority mode; Explore excludes hands-on coaching by design.
 
 ## Stack
 

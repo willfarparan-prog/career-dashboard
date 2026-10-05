@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Badge, ButtonLink, Card, EmptyState, FactBadge, Notice, PageHeader, formatDate } from "@/components/ui";
 import { getDatabase } from "@/db";
 import { COMPETENCIES, competency } from "@/content/interview/competencies";
-import type { GuidePath } from "@/content/learn/types";
+import { guideTargets } from "@/content/learn/guides";
 import { addDays, isoDay } from "@/lib/applications/dates";
 import { requireViewer } from "@/lib/auth/owner";
 import { getProfile } from "@/lib/career/profile";
@@ -47,7 +47,7 @@ export default async function InterviewPage() {
     listPracticeAttempts(db, userId, { limit: 8 }),
     interviewActions(db, userId, today, addDays(today, 30)),
   ]);
-  const targets = (profile?.targetRoles ?? []).filter((path): path is GuidePath => path !== "other");
+  const targets = guideTargets(profile?.targetRoles ?? []);
   const coverage = storyCoverage(stories, targets);
   const covered = coverage.filter((row) => row.stories.length).length;
 

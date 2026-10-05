@@ -3,7 +3,7 @@ import { after, before, test } from "node:test";
 import { eq } from "drizzle-orm";
 import type { Database } from "@/db";
 import { achievements, aiRuns, jobLeads, jobSearches, leadSearchMatches, profiles, roles } from "@/db/schema";
-import { suggestDirections } from "@/lib/ai/tasks/explore";
+import { resolveDirections, suggestDirections } from "@/lib/ai/tasks/explore";
 import { reviewDiscoverFit, resolveFit } from "@/lib/ai/tasks/discover-fit";
 import { payEligibility, workEligibility } from "@/lib/discover/eligibility";
 import { explorationInputs, explorationFingerprint, getFitReview, getExploration } from "@/lib/discover/exploration";
@@ -40,6 +40,13 @@ test("pay and work rules preserve uncertain postings but exclude clear mismatche
   assert.equal(workEligibility({ title: "Program coordinator", description: "Work alongside our sales team." }).excluded, false);
   assert.equal(workEligibility({ title: "Program coordinator", description: "You will meet a sales quota each quarter." }).excluded, true);
   assert.equal(workEligibility({ title: "Program coordinator", description: "You will coordinate events." }).label, "Check work type");
+});
+
+test("Explore drops suggestions that are really a priority path, strength & conditioning included", () => {
+  const direction = (title: string, query: string) => ({ title, query, terms: [], work: "Desk work.", difference: "", strengths: [{ text: "Ran programs.", achievementAliases: ["A1"], roleAliases: [] }], gaps: [], preparation: "", trainingMonths: null, progression: "" });
+  // Dropped before strengths are resolved: with no library, reaching that step would throw.
+  const output = { directions: [direction("Human Performance Program Coordinator", "human performance coordinator"), direction("Sports performance analyst", "sports performance analyst"), direction("Tactical strength program admin", "tactical strength and conditioning administrator")] };
+  assert.deepEqual(resolveDirections(output, {} as Parameters<typeof resolveDirections>[1]), []);
 });
 
 test("manual Explore refresh shares one posting across modes; cron remains priority-only", async () => {

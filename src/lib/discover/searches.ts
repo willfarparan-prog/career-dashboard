@@ -81,6 +81,7 @@ const PATH_QUERIES: Record<CareerPath, string> = {
   implementation: "implementation specialist",
   account_management: "account manager",
   employer_wellbeing: "employee wellbeing program manager",
+  strength_conditioning: "strength and conditioning coach",
   other: "client success",
 };
 
@@ -88,5 +89,5 @@ const PATH_QUERIES: Record<CareerPath, string> = {
 export function suggestedSearches(targetRoles: CareerPath[], targetLocations: string[]): SearchInput[] {
   const place = targetLocations.find((l) => !/remote/i.test(l)) ?? "";
   const roles = targetRoles.length ? targetRoles : (["customer_success", "implementation", "account_management", "employer_wellbeing"] as CareerPath[]);
-  return roles.slice(0, 4).map((role) => ({ name: PATH_QUERIES[role], query: PATH_QUERIES[role], location: place, remoteOnly: false, maxAgeDays: 7 }));
+  return roles.slice(0, 5).map((role) => ({ name: PATH_QUERIES[role], query: PATH_QUERIES[role], location: place, remoteOnly: false, maxAgeDays: 7 }));
 }

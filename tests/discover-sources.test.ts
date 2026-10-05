@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { after, before, beforeEach, describe, mock, test } from "node:test";
 import { scoreLead, type ScoreContext } from "@/lib/discover/score";
+import { suggestedSearches } from "@/lib/discover/searches";
 import { adzuna } from "@/lib/discover/sources/adzuna";
 import { himalayas } from "@/lib/discover/sources/himalayas";
 import { SOURCES } from "@/lib/discover/sources";
@@ -464,6 +465,25 @@ describe("scoring", () => {
     assert.ok(am.score > ae.score);
     const wellbeing = scoreLead(lead({ title: "Employee Well-being Program Manager" }), { ...context, targetRoles: ["employer_wellbeing"] }, now);
     assert.equal(points(wellbeing, /Employer wellbeing role/), 20);
+  });
+
+  test("strength & conditioning titles earn the role bonus only when it's a target path", () => {
+    const sc = { ...context, query: "strength and conditioning coach", targetRoles: [...context.targetRoles, "strength_conditioning"] };
+    for (const title of ["Strength & Conditioning Coach", "Assistant Strength and Conditioning Coach", "S&C Coach", "TSAC-F Facilitator", "Tactical Strength Coach", "Human Performance Specialist", "Sports Performance Coach", "Strength Coach", "Exercise Physiologist"]) {
+      assert.equal(points(scoreLead(lead({ title }), sc, now), /^Strength & conditioning role$/), 20, title);
+    }
+    for (const title of ["Performance Marketing Manager", "Performance Manager", "Conditioning Technician", "Customer Success Manager"]) {
+      assert.equal(points(scoreLead(lead({ title }), sc, now), /^Strength & conditioning role$/), undefined, title);
+    }
+    // The four original targets don't reward S&C titles.
+    assert.equal(points(scoreLead(lead({ title: "Strength & Conditioning Coach" }), context, now), /role$/), undefined);
+  });
+
+  test("suggested searches include every selected target path, strength & conditioning too", () => {
+    const roles = ["customer_success", "implementation", "account_management", "employer_wellbeing", "strength_conditioning"] as const;
+    const suggestions = suggestedSearches([...roles], ["Remote", "San Diego, CA"]);
+    assert.equal(suggestions.length, 5);
+    assert.deepEqual(suggestions.at(-1), { name: "strength and conditioning coach", query: "strength and conditioning coach", location: "San Diego, CA", remoteOnly: false, maxAgeDays: 7 });
   });
 
   test("every fixture lead scores 0–100 with reasons that sum to the score", async () => {

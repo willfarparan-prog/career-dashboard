@@ -7,6 +7,7 @@ export const TARGET_ROLE_LABELS: Record<CareerPath, string> = {
   implementation: "Implementation",
   account_management: "Account management",
   employer_wellbeing: "Employer wellbeing",
+  strength_conditioning: "Strength & conditioning / tactical performance",
   other: "Other",
 };
 

@@ -2,16 +2,22 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { CAREER_PATHS } from "@/db/schema";
 import { GLOSSARY } from "@/content/learn/glossary";
-import { GUIDE_ORDER, GUIDES } from "@/content/learn/guides";
+import { GUIDE_ORDER, GUIDES, guideTargets } from "@/content/learn/guides";
 import { RESOURCES } from "@/content/learn/resources";
 
 /* The curated Learn content holds together: every reference resolves. */
 
 const termKeys = new Set(GLOSSARY.map((term) => term.key));
 
-test("every target path except 'other' has a field guide, listed once", () => {
-  assert.deepEqual([...GUIDE_ORDER].sort(), CAREER_PATHS.filter((path) => path !== "other").sort());
+test("every target path except 'other' and strength & conditioning has a field guide, listed once", () => {
+  assert.deepEqual([...GUIDE_ORDER].sort(), CAREER_PATHS.filter((path) => path !== "other" && path !== "strength_conditioning").sort());
   for (const path of GUIDE_ORDER) assert.equal(GUIDES[path].path, path);
+});
+
+test("guideTargets keeps only target roles that have a guide", () => {
+  assert.deepEqual(guideTargets(["strength_conditioning", "customer_success", "other", "astronaut"]), ["customer_success"]);
+  assert.deepEqual(guideTargets(["strength_conditioning"]), []);
+  for (const path of guideTargets(CAREER_PATHS)) assert.ok(GUIDES[path], path);
 });
 
 test("glossary keys are unique and no phrase belongs to two terms", () => {

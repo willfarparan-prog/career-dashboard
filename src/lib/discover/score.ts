@@ -34,6 +34,8 @@ const ROLE_VOCABULARY: Record<CareerPath, RegExp> = {
   implementation: /\b(implementations?|onboarding)\b/,
   account_management: /\b(account manager|account management|client account|relationship manager|client relationship)\b/,
   employer_wellbeing: /\b(well ?being|wellness|benefits|(employee|employer|member|customer|client) engagement)\b/,
+  // Titles are plain()ed first, so "S&C" reads "s c" and "TSAC-F" reads "tsac f".
+  strength_conditioning: /\b(strength (and )?conditioning|strength coach|s c coach|tsac|tactical (strength|performance|facilitator|athlete)|human performance|performance (coach|specialist)|sports performance|athletic performance|exercise physiologist)\b/,
   other: /\b(client services?|customer experience)\b/,
 };
 
