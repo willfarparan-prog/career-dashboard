@@ -316,7 +316,7 @@ export const aiRuns = pgTable("ai_runs", {
  * Remotely) or captured with the bookmarklet. A lead becomes a job only when
  * the owner saves it to the pipeline. Nothing here applies anywhere.
  */
-export const LEAD_SOURCES = ["jsearch", "adzuna", "himalayas", "remotive", "wwr"] as const;
+export const LEAD_SOURCES = ["jsearch", "adzuna", "usajobs", "himalayas", "remotive", "wwr"] as const;
 export type LeadSource = (typeof LEAD_SOURCES)[number];
 
 export const LEAD_STATUSES = ["new", "saved", "dismissed"] as const;

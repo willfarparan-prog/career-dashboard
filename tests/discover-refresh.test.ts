@@ -18,7 +18,7 @@ import { testDatabase } from "./helpers";
 
 let db: Database;
 let close: () => Promise<void>;
-const ENV_KEYS = ["JSEARCH_API_KEY", "JSEARCH_PROVIDER", "ADZUNA_APP_ID", "ADZUNA_APP_KEY", "CRON_SECRET"] as const;
+const ENV_KEYS = ["JSEARCH_API_KEY", "JSEARCH_PROVIDER", "ADZUNA_APP_ID", "ADZUNA_APP_KEY", "USAJOBS_API_KEY", "USAJOBS_EMAIL", "CRON_SECRET"] as const;
 const savedEnv = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
 
 function setEnv(values: Partial<Record<(typeof ENV_KEYS)[number], string>>) {
@@ -77,6 +77,22 @@ const bodies: Record<LeadSource, (items: Posting[]) => string> = {
         location: { display_name: p.location ?? "Tampa, Hillsborough County" },
       })),
     }),
+  usajobs: (items) =>
+    JSON.stringify({
+      SearchResult: {
+        SearchResultItems: items.map((p) => ({
+          MatchedObjectId: p.id,
+          MatchedObjectDescriptor: {
+            PositionTitle: p.title,
+            PositionURI: `https://www.usajobs.gov/job/${p.id}`,
+            OrganizationName: p.company,
+            PositionLocationDisplay: p.location ?? "Tampa, Florida",
+            PublicationStartDate: daysAgo(1).toISOString(),
+            UserArea: { Details: { JobSummary: p.description ?? "Federal role." } },
+          },
+        })),
+      },
+    }),
   himalayas: (items) =>
     JSON.stringify({
       jobs: items.map((p) => ({
@@ -112,6 +128,7 @@ const bodies: Record<LeadSource, (items: Posting[]) => string> = {
 function sourceOf(url: string): LeadSource {
   if (url.includes("jsearch")) return "jsearch";
   if (url.includes("adzuna")) return "adzuna";
+  if (url.includes("usajobs")) return "usajobs";
   if (url.includes("himalayas")) return "himalayas";
   if (url.includes("remotive")) return "remotive";
   if (url.includes("weworkremotely")) return "wwr";
@@ -122,7 +139,7 @@ type Route = Posting[] | number | Error;
 
 /** Answers each source from `routes` (postings, an HTTP status, or a thrown error) and counts calls. */
 function fakeSources(routes: Partial<Record<LeadSource, Route>>) {
-  const calls: Record<LeadSource, number> = { jsearch: 0, adzuna: 0, himalayas: 0, remotive: 0, wwr: 0 };
+  const calls: Record<LeadSource, number> = { jsearch: 0, adzuna: 0, usajobs: 0, himalayas: 0, remotive: 0, wwr: 0 };
   const fetchImpl: FetchLike = async (url) => {
     const source = sourceOf(url);
     calls[source] += 1;
@@ -184,16 +201,28 @@ test("sources that aren't set up are skipped without a request", async () => {
 
   const summary = await refreshSearches(db, "u-skip", { fetchImpl });
   const byId = Object.fromEntries(summary.runs.map((r) => [r.source, r]));
-  assert.deepEqual(summary.runs.map((r) => r.source), ["jsearch", "adzuna", "himalayas", "remotive", "wwr"]);
+  assert.deepEqual(summary.runs.map((r) => r.source), ["jsearch", "adzuna", "usajobs", "himalayas", "remotive", "wwr"]);
   assert.equal(byId.jsearch.status, "skipped");
   assert.match(byId.jsearch.message, /JSEARCH_API_KEY/);
   assert.equal(byId.adzuna.status, "skipped");
   assert.match(byId.adzuna.message, /ADZUNA_APP_ID and ADZUNA_APP_KEY/);
-  assert.equal(byId.jsearch.requests + byId.adzuna.requests, 0);
-  assert.equal(calls.jsearch + calls.adzuna, 0);
+  assert.equal(byId.usajobs.status, "skipped");
+  assert.match(byId.usajobs.message, /USAJOBS_API_KEY and USAJOBS_EMAIL/);
+  assert.equal(byId.jsearch.requests + byId.adzuna.requests + byId.usajobs.requests, 0);
+  assert.equal(calls.jsearch + calls.adzuna + calls.usajobs, 0);
   assert.equal(byId.himalayas.status, "ok");
   assert.equal(byId.himalayas.added, 1);
-  assert.equal((await runsOf("u-skip")).length, 5, "every source × search is recorded, skipped ones too");
+  assert.equal((await runsOf("u-skip")).length, 6, "every source × search is recorded, skipped ones too");
+});
+
+test("USAJOBS leads are stored once its key and email are set", async () => {
+  setEnv({ USAJOBS_API_KEY: "test-usajobs-key", USAJOBS_EMAIL: "owner@example.com" });
+  await addProfile("u-fed");
+  await createSearch(db, "u-fed", { query: "strength and conditioning coach", location: "San Diego, CA", sources: ["usajobs"] });
+  const { fetchImpl, calls } = fakeSources({ usajobs: [{ id: "845100001", title: "Strength and Conditioning Coach", company: "Naval Special Warfare Command", location: "Coronado, California" }] });
+  const summary = await refreshSearches(db, "u-fed", { fetchImpl });
+  assert.deepEqual(summary.runs.map((r) => [r.source, r.status, r.added]), [["usajobs", "ok", 1]]);
+  assert.equal(calls.usajobs, 1);
 });
 
 test("remote-only boards skip when neither search nor profile is open to remote; remote-only searches drop on-site jobs", async () => {
