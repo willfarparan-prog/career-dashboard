@@ -4,6 +4,7 @@ import { aiConfigured } from "@/lib/ai/run";
 import { COMPANY_SIZE_LABELS, COMPANY_SIZES } from "@/lib/jobs/format";
 import { createJobAction } from "../actions";
 
+export const metadata = { title: "Add a job" };
 export const maxDuration = 300;
 
 const RATINGS = [

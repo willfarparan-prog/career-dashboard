@@ -39,8 +39,6 @@ export function cleanTags(items: readonly string[]): string[] {
   return cleanList(items.map((tag) => tag.toLowerCase()));
 }
 
-export const sameText = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
-
 /** Throws a CareerInputError when a required text field is blank. */
 export function required(value: string, message: string): string {
   const trimmed = value.trim();

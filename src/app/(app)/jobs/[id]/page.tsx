@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { ApplicationSection } from "@/app/(app)/applications/section";
 import { CoverLetterSection } from "@/app/(app)/jobs/[id]/cover-letter/section";
@@ -9,7 +10,8 @@ import { Badge, buttonClass, Card, EvidenceBadge, formatDate, Notice, PageHeader
 import { getDatabase } from "@/db";
 import { CAREER_PATHS, type RequirementKind } from "@/db/schema";
 import { aiConfigured } from "@/lib/ai/run";
-import { requireViewer } from "@/lib/auth/owner";
+import { todayIso } from "@/lib/applications/dates";
+import { getViewer, requireViewer } from "@/lib/auth/owner";
 import {
   CAREER_PATH_LABELS,
   COMPANY_SIZE_LABELS,
@@ -23,9 +25,8 @@ import {
   POSTING_STATUS_LABELS,
   POSTING_STATUSES,
   REMOTE_LABELS,
-  todayIso,
 } from "@/lib/jobs/format";
-import { getJobDetail, type JobDetail, type JobRequirement } from "@/lib/jobs/jobs";
+import { getJob, getJobDetail, type JobDetail, type JobRequirement } from "@/lib/jobs/jobs";
 import { practiceHref } from "@/lib/interview/links";
 import { listProgress, termKey, type Progress } from "@/lib/learn/progress";
 import { findTerms, glossaryTerm } from "@/lib/learn/terms";
@@ -34,6 +35,13 @@ import { AutoSubmitSelect } from "./auto-submit-select";
 import { FitBreakdown, FitScore } from "./fit-breakdown";
 
 export const maxDuration = 300;
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const [{ id }, viewer] = await Promise.all([params, getViewer()]);
+  const db = getDatabase();
+  const job = viewer && db ? await getJob(db, viewer.userId, id) : null;
+  return { title: job ? `${jobTitle(job)} · Jobs` : "Job" };
+}
 
 const RATINGS = ["1", "2", "3", "4", "5"];
 

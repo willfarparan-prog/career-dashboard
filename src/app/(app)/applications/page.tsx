@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ButtonLink, EmptyState, PageHeader, StatusBadge, STATUS_OPTIONS, formatDate } from "@/components/ui";
 import { requireDatabase } from "@/db";
 import { APPLICATION_STATUSES, type ApplicationStatus } from "@/db/schema";
-import { dueState, isoDay } from "@/lib/applications/dates";
+import { dueState, todayIso } from "@/lib/applications/dates";
 import { groupByStatus, isFrozen, listApplications, type ApplicationListItem } from "@/lib/applications/queries";
 import { requireViewer } from "@/lib/auth/owner";
 import { DueDate } from "./parts";
@@ -103,7 +103,7 @@ function ApplicationCard({ item, today }: { item: ApplicationListItem; today: st
 export default async function ApplicationsPage() {
   const { userId } = await requireViewer();
   const items = await listApplications(requireDatabase(), userId);
-  const today = isoDay(new Date());
+  const today = todayIso();
 
   if (!items.length) {
     return (

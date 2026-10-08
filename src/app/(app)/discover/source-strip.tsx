@@ -85,17 +85,45 @@ function SourceCard({ status, now }: { status: SourceStatus; now: Date }) {
   );
 }
 
-/** One small card per source: set up or not, quota used, last fetch. Renders nothing without sources. */
+/** A source to look at: not set up, its last fetch failed, or its quota is nearly spent. */
+export function needsAttention(status: SourceStatus): boolean {
+  if (!status.configured || status.lastRun?.status === "error") return true;
+  const nearly = (used: number, max: number | null) => max != null && max > 0 && used >= 0.9 * max;
+  return nearly(status.usedThisMonth, status.monthlyQuota) || nearly(status.usedToday, status.dailyQuota);
+}
+
+/** "5 working · 1 failed": what the collapsed panel says. */
+export function sourceSummary(statuses: SourceStatus[]): string {
+  const failed = statuses.filter((s) => s.configured && s.lastRun?.status === "error").length;
+  const missing = statuses.filter((s) => !s.configured).length;
+  const parts = [`${statuses.length - failed - missing} working`];
+  if (failed) parts.push(`${failed} failed`);
+  if (missing) parts.push(`${missing} not set up`);
+  return parts.join(" · ");
+}
+
+/**
+ * One small card per source: set up or not, quota used, last fetch. Collapsed
+ * to one line so postings come first; opens by itself when a source needs
+ * attention. Renders nothing without sources.
+ */
 export function SourceStrip({ statuses, now }: { statuses: SourceStatus[]; now: Date }) {
   if (!statuses.length) return null;
-  const ready = statuses.filter((s) => s.configured).length;
+  const attention = statuses.some(needsAttention);
   return (
-    <Card title="Sources" description={`${ready} of ${statuses.length} set up. Discover only reads listings; it never applies anywhere for you.`}>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {statuses.map((status) => (
-          <SourceCard key={status.id} status={status} now={now} />
-        ))}
-      </div>
+    <Card>
+      <details open={attention}>
+        <summary className="cursor-pointer text-[0.8125rem]">
+          <span className="font-semibold">Sources</span>
+          <span className="text-muted-foreground"> · {sourceSummary(statuses)}</span>
+        </summary>
+        <p className="mt-1 text-xs text-muted-foreground">Discover only reads listings; it never applies anywhere for you.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {statuses.map((status) => (
+            <SourceCard key={status.id} status={status} now={now} />
+          ))}
+        </div>
+      </details>
     </Card>
   );
 }

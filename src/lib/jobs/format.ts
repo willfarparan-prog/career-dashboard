@@ -78,11 +78,6 @@ export function jobCompany(job: { company: string }) {
   return job.company.trim() || "Company not set";
 }
 
-/** Today's date as YYYY-MM-DD in UTC. */
-export function todayIso(now = new Date()) {
-  return now.toISOString().slice(0, 10);
-}
-
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** True for a real calendar date written as YYYY-MM-DD. */

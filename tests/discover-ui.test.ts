@@ -18,6 +18,8 @@ import { dedupeKey } from "@/lib/discover/dedupe";
 import { dismissLeads, LeadError, listLeads, saveLeadToPipeline, setLeadStatus } from "@/lib/discover/leads";
 import type { RefreshSummary, SourceRunResult } from "@/lib/discover/types";
 import { BookmarkletLink } from "@/app/(app)/discover/bookmarklet-link";
+import { needsAttention, SourceStrip, sourceSummary } from "@/app/(app)/discover/source-strip";
+import type { SourceStatus } from "@/lib/discover/leads";
 import {
   inboxHref,
   parseInboxQuery,
@@ -487,3 +489,31 @@ describe("saving a lead to the pipeline", () => {
     assert.deepEqual((await listLeads(db, USER)).map((l) => l.id), [other.id]);
   });
 });
+
+describe("sources panel", () => {
+  const now = new Date("2026-10-07T12:00:00Z");
+  const source = (overrides: Partial<SourceStatus>): SourceStatus => ({
+    id: "adzuna", label: "Adzuna", description: "", attribution: null, envVars: ["ADZUNA_APP_ID"], configured: true,
+    usedThisMonth: 10, usedToday: 1, monthlyQuota: 2500, dailyQuota: 250,
+    lastRun: { status: "ok", at: now, message: null, found: 3, added: 1 }, ...overrides,
+  });
+  const render = (statuses: SourceStatus[]) => renderToStaticMarkup(createElement(SourceStrip, { statuses, now }));
+
+  test("stays collapsed to one line while every source is fine", () => {
+    const html = render([source({}), source({ id: "usajobs", label: "USAJOBS", monthlyQuota: null, dailyQuota: null })]);
+    assert.match(html, /<details>/);
+    assert.match(html, /Sources<\/span>.*2 working/);
+  });
+
+  test("opens by itself when a source failed, isn't set up, or is near its quota", () => {
+    assert.equal(needsAttention(source({ lastRun: { status: "error", at: now, message: "401", found: 0, added: 0 } })), true);
+    assert.equal(needsAttention(source({ configured: false })), true);
+    assert.equal(needsAttention(source({ usedThisMonth: 2250 })), true, "90% of the month");
+    assert.equal(needsAttention(source({ usedThisMonth: 2249, usedToday: 224 })), false);
+    assert.equal(needsAttention(source({ monthlyQuota: null, dailyQuota: null, usedThisMonth: 999 })), false, "no quota");
+    const html = render([source({}), source({ id: "jsearch", label: "JSearch", lastRun: { status: "error", at: now, message: "404", found: 0, added: 0 } }), source({ id: "usajobs", configured: false })]);
+    assert.match(html, /<details open="">/);
+    assert.equal(sourceSummary([source({}), source({ configured: false }), source({ lastRun: { status: "error", at: now, message: null, found: 0, added: 0 } })]), "1 working · 1 failed · 1 not set up");
+  });
+});
+

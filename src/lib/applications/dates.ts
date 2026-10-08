@@ -1,13 +1,21 @@
+import { localDay } from "@/lib/time";
+
 /*
  * Day-level date helpers. Next-action dates and deadlines are stored as text
- * ("YYYY-MM-DD"); comparisons happen on UTC calendar days.
+ * ("YYYY-MM-DD") and compared as plain calendar days. "Today" is the owner's
+ * day (APP_TIME_ZONE, see src/lib/time.ts), not UTC's.
  */
 
 const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})/;
 
-/** "YYYY-MM-DD" for a moment, in UTC. */
+/** "YYYY-MM-DD" for a moment, in UTC. For day arithmetic; use todayIso() for "today". */
 export function isoDay(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+/** Today's date ("YYYY-MM-DD") in the owner's time zone. */
+export function todayIso(now = new Date()): string {
+  return localDay(now);
 }
 
 export function addDays(day: string, days: number): string {
@@ -60,12 +68,12 @@ export function dueState(day: string | null | undefined, today: string, soonDays
 
 /**
  * The submitted date from a form's "YYYY-MM-DD" field: today means now; an
- * earlier day means noon UTC that day (so it displays as that day). Null when
- * blank or invalid.
+ * earlier day means noon UTC that day (which is that same day across the
+ * Americas). Null when blank or invalid.
  */
 export function submittedAtFromDay(day: string, now = new Date()): Date | null {
   const parsed = parseDay(day);
   if (!parsed) return null;
-  if (parsed === isoDay(now)) return now;
+  if (parsed === todayIso(now)) return now;
   return new Date(`${parsed}T12:00:00Z`);
 }

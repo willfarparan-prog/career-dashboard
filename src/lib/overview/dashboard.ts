@@ -1,7 +1,8 @@
 import { and, count, desc, eq, gte, inArray, isNotNull, ne, notInArray, sql } from "drizzle-orm";
 import type { Database } from "@/db";
 import { achievements, applications, careerImports, jobs, resumeDrafts, roles, snapshots, type ApplicationStatus } from "@/db/schema";
-import { addDays, daysBetween, isoDay, parseDay, startOfUtcMonth } from "@/lib/applications/dates";
+import { addDays, daysBetween, parseDay, todayIso } from "@/lib/applications/dates";
+import { startOfLocalDay } from "@/lib/time";
 import { describeReadiness, draftReadiness } from "@/lib/applications/readiness";
 import { interviewActions } from "@/lib/interview/interviews";
 import { hasReadAGuide } from "@/lib/learn/progress";
@@ -16,7 +17,7 @@ export type OverviewStats = { active: number; appliedThisMonth: number; intervie
 export async function overviewStats(db: Database, userId: string, now = new Date()): Promise<OverviewStats> {
   const [[active], [applied], [interviews]] = await Promise.all([
     db.select({ n: count() }).from(applications).where(and(eq(applications.userId, userId), notInArray(applications.status, CLOSED_STATUSES))),
-    db.select({ n: count() }).from(applications).where(and(eq(applications.userId, userId), gte(applications.submittedAt, startOfUtcMonth(now)))),
+    db.select({ n: count() }).from(applications).where(and(eq(applications.userId, userId), gte(applications.submittedAt, startOfLocalDay(`${todayIso(now).slice(0, 7)}-01`)))),
     db.select({ n: count() }).from(applications).where(and(eq(applications.userId, userId), eq(applications.status, "interview"))),
   ]);
   return { active: Number(active?.n ?? 0), appliedThisMonth: Number(applied?.n ?? 0), interviews: Number(interviews?.n ?? 0) };
@@ -43,7 +44,7 @@ export type NextActionItem = {
  * plus upcoming interview rounds and unsent thank-you notes, soonest first.
  */
 export async function nextActions(db: Database, userId: string, now = new Date(), windowDays = 7): Promise<NextActionItem[]> {
-  const today = isoDay(now);
+  const today = todayIso(now);
   const until = addDays(today, windowDays);
   const rows = await db
     .select({ application: applications, company: jobs.company, title: jobs.title })
@@ -89,7 +90,7 @@ export type DeadlineItem = { jobId: string; company: string; title: string; date
 
 /** Jobs not applied to yet whose deadline falls between today and `windowDays` from now. */
 export async function upcomingDeadlines(db: Database, userId: string, now = new Date(), windowDays = 14): Promise<DeadlineItem[]> {
-  const today = isoDay(now);
+  const today = todayIso(now);
   const until = addDays(today, windowDays);
   const rows = await db
     .select({ id: jobs.id, company: jobs.company, title: jobs.title, deadline: jobs.deadline, status: applications.status })

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Card, Notice, PageHeader, StatusBadge, StatusPath, STATUS_OPTIONS, formatDate } from "@/components/ui";
 import { requireDatabase } from "@/db";
-import { isoDay } from "@/lib/applications/dates";
+import { todayIso } from "@/lib/applications/dates";
 import { getApplication, isFrozen } from "@/lib/applications/queries";
 import { requireViewer } from "@/lib/auth/owner";
 import { updateApplicationAction } from "../actions";
@@ -20,7 +20,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
   const { application, job, sent } = detail;
   const frozen = isFrozen(application);
   const statusOptions = STATUS_OPTIONS.filter((option) => option.value !== "applied" || frozen || application.status === "applied");
-  const today = isoDay(new Date());
+  const today = todayIso();
 
   return (
     <>

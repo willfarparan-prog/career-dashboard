@@ -1,3 +1,5 @@
+import { appTimeZone } from "@/lib/time";
+
 /** "$0.42"; tiny amounts keep enough digits to be meaningful ("$0.0031"). */
 export function formatUsd(value: number, { precise = false }: { precise?: boolean } = {}): string {
   const digits = precise && value > 0 && value < 0.1 ? 4 : 2;
@@ -17,7 +19,7 @@ export function formatDuration(ms: number): string {
   return `${Math.floor(seconds / 60)} m ${Math.round(seconds % 60)} s`;
 }
 
-/** "Sep 29, 14:05" in UTC. */
+/** "Sep 29, 14:05" in the owner's time zone. */
 export function formatDateTime(value: Date): string {
-  return value.toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "UTC" });
+  return value.toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: appTimeZone() });
 }

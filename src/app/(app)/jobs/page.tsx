@@ -1,15 +1,18 @@
 import Link from "next/link";
 import { Badge, ButtonLink, EmptyState, formatDate, Notice, PageHeader, StatusBadge } from "@/components/ui";
 import { getDatabase } from "@/db";
+import { todayIso } from "@/lib/applications/dates";
 import { requireViewer } from "@/lib/auth/owner";
 import { fitSummary } from "@/lib/jobs/fit";
-import { formatComp, jobCompany, jobTitle, REMOTE_LABELS, todayIso } from "@/lib/jobs/format";
+import { formatComp, jobCompany, jobTitle, REMOTE_LABELS } from "@/lib/jobs/format";
 import { listJobs, type JobListItem } from "@/lib/jobs/jobs";
 import { FitBreakdown, FitScore } from "./[id]/fit-breakdown";
 
 function isArchived({ job, applicationStatus }: JobListItem) {
   return job.postingStatus === "closed" || applicationStatus === "rejected" || applicationStatus === "withdrawn";
 }
+
+export const metadata = { title: "Jobs" };
 
 export default async function JobsPage() {
   const { userId } = await requireViewer();
