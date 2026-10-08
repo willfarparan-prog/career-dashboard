@@ -26,11 +26,6 @@ function credential(c: ResumeCredential): OutlineBlock {
   return { kind: "credential", name: c.name, rest: (rest ? `, ${rest}` : "") + (c.detail ? ` — ${c.detail}` : "") };
 }
 
-/** "Title — Employer" when both exist, otherwise whichever does. */
-export function roleHeading(title: string, employer: string): string {
-  return [title, employer].filter(Boolean).join(" — ");
-}
-
 export function resumeOutline(doc: ResumeDocument): ResumeOutline {
   const sections: OutlineSection[] = [
     { heading: "SUMMARY", blocks: doc.summary ? [{ kind: "text", text: doc.summary }] : [] },

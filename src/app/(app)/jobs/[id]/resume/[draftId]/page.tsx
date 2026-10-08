@@ -29,6 +29,7 @@ import {
   summaryAction,
 } from "../actions";
 
+export const metadata = { title: "Resume draft" };
 export const maxDuration = 300;
 
 type Params = Promise<{ id: string; draftId: string }>;

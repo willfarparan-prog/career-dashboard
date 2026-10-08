@@ -1,4 +1,5 @@
 import type { ResumeDocument } from "@/lib/resume/document";
+import { appTimeZone } from "@/lib/time";
 
 /*
  * Small pieces shared by every renderer: the contact line, file names, the
@@ -31,9 +32,9 @@ export function exportFileName(parts: string[], kind: "Resume" | "Cover-Letter" 
   return `${stem}.${extension}`;
 }
 
-/** "September 29, 2026". UTC so the same instant always prints the same date. */
+/** "September 29, 2026": the day it is for the owner (APP_TIME_ZONE) at that instant. */
 export function letterDate(date: Date): string {
-  return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+  return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: appTimeZone() });
 }
 
 const GREETING_WORD = /^(dear|hello|hi|hey|greetings|to whom it may concern)\b/i;

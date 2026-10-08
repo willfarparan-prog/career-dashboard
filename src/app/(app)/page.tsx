@@ -10,6 +10,7 @@ import { listJobs } from "@/lib/jobs/jobs";
 import { gettingStarted, needsAttention, nextActions, overviewStats, upcomingDeadlines, type ChecklistStep } from "@/lib/overview/dashboard";
 import { formatUsd } from "@/lib/overview/format";
 import { spendSummary } from "@/lib/overview/spend";
+import { localHour } from "@/lib/time";
 
 export const metadata = { title: "Home" };
 
@@ -21,8 +22,7 @@ function relativeDays(days: number) {
 }
 
 function greeting(now: Date) {
-  const hour = now.getUTCHours() - 5; // US-ish; only sets the tone
-  const h = (hour + 24) % 24;
+  const h = localHour(now);
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 

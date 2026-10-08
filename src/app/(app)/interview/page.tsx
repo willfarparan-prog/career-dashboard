@@ -4,7 +4,7 @@ import { Badge, ButtonLink, Card, EmptyState, FactBadge, Notice, PageHeader, for
 import { getDatabase } from "@/db";
 import { COMPETENCIES, competency } from "@/content/interview/competencies";
 import { guideTargets } from "@/content/learn/guides";
-import { addDays, isoDay } from "@/lib/applications/dates";
+import { addDays, todayIso } from "@/lib/applications/dates";
 import { requireViewer } from "@/lib/auth/owner";
 import { getProfile } from "@/lib/career/profile";
 import { interviewActions } from "@/lib/interview/interviews";
@@ -40,7 +40,7 @@ export default async function InterviewPage() {
     );
   }
 
-  const today = isoDay(new Date());
+  const today = todayIso();
   const [profile, stories, attempts, upcoming] = await Promise.all([
     getProfile(db, userId),
     listStories(db, userId),

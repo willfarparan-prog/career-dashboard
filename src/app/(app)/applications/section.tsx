@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Card, Notice, formatDate, StatusPath } from "@/components/ui";
 import { requireDatabase } from "@/db";
-import { addDays, isoDay } from "@/lib/applications/dates";
+import { addDays, todayIso } from "@/lib/applications/dates";
 import { ensureApplicationForJob, isFrozen, loadApplyOptions, loadSentFiles, type Application, type CoverLetterOption, type DraftOption } from "@/lib/applications/queries";
 import { describeReadiness } from "@/lib/applications/readiness";
 import { requireViewer } from "@/lib/auth/owner";
@@ -29,7 +29,7 @@ function MarkAppliedForm({ application, drafts, letters }: { application: Applic
       </Notice>
     );
   }
-  const today = isoDay(new Date());
+  const today = todayIso();
   const defaultDraft = drafts.find((draft) => draft.approved) ?? drafts[0];
   const defaultLetter = letters.find((letter) => letter.approved && letter.paragraphs > 0);
   const anyUnfinished = drafts.some((draft) => !draft.approved || draft.openErrors > 0);

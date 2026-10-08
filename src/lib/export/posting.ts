@@ -1,4 +1,5 @@
 import type { PostingSnapshot } from "@/lib/snapshots/types";
+import { localDay } from "@/lib/time";
 
 /** Plain-text copy of a job posting as it was captured (postings export as TXT only). */
 export function renderPostingText(posting: PostingSnapshot): string {
@@ -9,7 +10,7 @@ export function renderPostingText(posting: PostingSnapshot): string {
     ["Compensation", posting.compText],
     ["Requisition", posting.requisitionId],
     ["Source", posting.sourceUrl],
-    ["Captured", captured && !Number.isNaN(captured.getTime()) ? captured.toISOString().slice(0, 10) : posting.capturedAt],
+    ["Captured", captured && !Number.isNaN(captured.getTime()) ? localDay(captured) : posting.capturedAt],
   ]
     .filter(([, value]) => value && value.trim())
     .map(([label, value]) => `${label}: ${value.trim()}`);

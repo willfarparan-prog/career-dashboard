@@ -13,8 +13,11 @@ export function Providers({ children }: { children: ReactNode }) {
       authClient={authClient}
       baseURL={process.env.NEXT_PUBLIC_APP_URL ?? ""}
       defaultTheme="system"
-      // Google proves the email is verified, which the owner gate requires.
+      // Google proves the email is verified, which the owner gate requires; a
+      // password account could never pass it, so there's no password or sign-up form.
       social={{ providers: ["google"] }}
+      credentials={false}
+      signUp={false}
       redirectTo="/auth/continue"
       navigate={router.push}
       replace={router.replace}

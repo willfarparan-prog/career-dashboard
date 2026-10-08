@@ -1,5 +1,6 @@
 import type { ApplicationStatus } from "@/db/schema";
-import { jobCompany, jobTitle, normalizeText, todayIso, type PostingStatus } from "./format";
+import { todayIso } from "@/lib/applications/dates";
+import { jobCompany, jobTitle, normalizeText, type PostingStatus } from "./format";
 
 /*
  * Alerts are hints, not blockers: a possible duplicate, a posting that may

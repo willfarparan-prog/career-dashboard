@@ -13,6 +13,7 @@ import { isUuid } from "@/lib/export/formats";
 import { deleteCoverLetterAction, generateCoverLetterAction, saveCoverLetterAction, setCoverLetterStatusAction } from "./actions";
 import { EvidenceChips, LetterDownloads, LetterStatusBadge, WordCount } from "./parts";
 
+export const metadata = { title: "Cover letter" };
 export const maxDuration = 300;
 
 const TONE_LABELS: Record<(typeof COVER_TONES)[number], string> = { warm: "Warm", direct: "Direct", formal: "Formal" };

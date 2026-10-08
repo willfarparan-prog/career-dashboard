@@ -7,7 +7,7 @@ import { Badge, Card, EmptyState, Notice, PageHeader, formatDate } from "@/compo
 import { getDatabase } from "@/db";
 import { INTERVIEW_OUTCOMES, INTERVIEW_STAGES, type PrepContent } from "@/db/schema";
 import { competency } from "@/content/interview/competencies";
-import { isoDay } from "@/lib/applications/dates";
+import { todayIso } from "@/lib/applications/dates";
 import { aiConfigured } from "@/lib/ai/run";
 import { requireViewer } from "@/lib/auth/owner";
 import { isUuid } from "@/lib/export/formats";
@@ -229,7 +229,7 @@ function RoundFields({ round }: { round?: Interview }) {
 }
 
 function RoundsCard({ jobId, rounds }: { jobId: string; rounds: Interview[] }) {
-  const today = isoDay(new Date());
+  const today = todayIso();
   return (
     <Card title="Rounds" description="Upcoming rounds and unsent thank-you notes show on Home.">
       {rounds.length ? (

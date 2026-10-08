@@ -75,15 +75,3 @@ export async function updateApplication(db: Database, userId: string, applicatio
     .returning();
   return { ok: true, application: updated };
 }
-
-export function setApplicationStatus(db: Database, userId: string, applicationId: string, status: ApplicationStatus) {
-  return updateApplication(db, userId, applicationId, { status });
-}
-
-export function setNextAction(db: Database, userId: string, applicationId: string, nextAction: string, nextActionDate: string) {
-  return updateApplication(db, userId, applicationId, { nextAction, nextActionDate });
-}
-
-export function setContact(db: Database, userId: string, applicationId: string, contact: { name: string; email: string; note: string }) {
-  return updateApplication(db, userId, applicationId, { contactName: contact.name, contactEmail: contact.email, contactNote: contact.note });
-}

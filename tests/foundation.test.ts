@@ -3,6 +3,7 @@ import { after, before, test } from "node:test";
 import { eq, sql } from "drizzle-orm";
 import { rowsOf, type Database } from "@/db";
 import { achievements, aiRuns, jobs, profiles, roles, snapshots } from "@/db/schema";
+import { missingTables, schemaTableNames } from "@/db/tables";
 import { isOwner } from "@/lib/auth/policy";
 import { buildLibraryContext, loadLibrary, resolveAliases } from "@/lib/ai/library";
 import { estimateCost } from "@/lib/ai/models";
@@ -25,10 +26,11 @@ test("owner gate needs the configured email AND a verified address", () => {
 
 test("migrations build every table the schema declares", async () => {
   const result = await db.execute(sql`select table_name from information_schema.tables where table_schema = 'public'`);
-  const tables = new Set(rowsOf<{ table_name: string }>(result).map((row) => row.table_name));
-  for (const name of ["profiles", "roles", "credentials", "skills", "achievements", "career_imports", "jobs", "job_requirements", "resume_drafts", "resume_bullets", "quality_findings", "cover_letters", "applications", "snapshots", "ai_runs"]) {
-    assert.ok(tables.has(name), `missing table ${name}`);
-  }
+  const tables = rowsOf<{ table_name: string }>(result).map((row) => row.table_name);
+  assert.ok(schemaTableNames().length >= 26);
+  assert.deepEqual(missingTables(tables), []);
+  // What /api/health reports when a migration hasn't been applied yet.
+  assert.deepEqual(missingTables(tables.filter((name) => name !== "lead_search_matches")), ["lead_search_matches"]);
 });
 
 /** Drizzle wraps driver errors; the database's own message is on `cause`. */

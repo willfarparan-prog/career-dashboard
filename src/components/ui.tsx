@@ -2,6 +2,7 @@ import { Check, CircleAlert, CircleCheck, Info, TriangleAlert } from "lucide-rea
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { ApplicationStatus, EvidenceLabel, FactStatus } from "@/db/schema";
+import { displayZone } from "@/lib/time";
 import { ObjectBreadcrumb, ObjectIcon } from "./nav";
 
 /*
@@ -210,10 +211,5 @@ export function formatDate(value: Date | string | null | undefined) {
   if (!value) return "";
   const date = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
-}
-
-export function formatMoney(value: number | null | undefined) {
-  if (value == null) return "";
-  return value.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: displayZone(value) });
 }
